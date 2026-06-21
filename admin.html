@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>auth · sankhacooray admin</title>
+<script src="https://accounts.google.com/gsi/client" async></script>
+<style>
+  :root { --bg:#0e1116; --panel:#171c24; --panel2:#1f2630; --line:#2a323d;
+    --text:#e7edf3; --muted:#93a1b0; --accent:#05a081; --accent2:#38bdf8; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:860px; margin:0 auto; padding:28px 20px 60px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin:0 0 22px; }
+  .card { background:var(--panel2); border:1px solid var(--line); border-radius:12px;
+    padding:16px 18px; margin-bottom:16px; }
+  .app h3 { margin:0; font-size:15px; }
+  .app .id { color:var(--muted); font-size:12px; font-weight:400; }
+  .emails { margin:10px 0 0; display:flex; flex-wrap:wrap; gap:6px; }
+  .pill { background:var(--bg); border:1px solid var(--line); color:var(--text);
+    border-radius:999px; padding:3px 10px; font-size:12px; }
+  .empty { color:var(--muted); font-size:13px; }
+  .row { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  input { background:var(--bg); border:1px solid var(--line); color:var(--text);
+    border-radius:8px; padding:9px 11px; font-size:14px; flex:1; min-width:180px; }
+  button { background:var(--accent); color:#04231d; border:0; font-weight:700;
+    border-radius:8px; padding:9px 16px; cursor:pointer; font-size:14px; }
+  button:disabled { opacity:.55; cursor:progress; }
+  .msg { font-size:13px; min-height:18px; margin:6px 2px 0; }
+  .msg.err { color:#ff8f8f; } .msg.ok { color:var(--accent2); }
+  hr { border:0; border-top:1px solid var(--line); margin:24px 0; }
+  #signin { display:grid; place-items:center; min-height:80vh; gap:14px; text-align:center; }
+  #app { display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="signin">
+    <div>
+      <div style="font-size:42px">🔐</div>
+      <h1>sankhacooray · auth admin</h1>
+      <p class="sub" id="signin-msg">Sign in as the admin to manage app access.</p>
+    </div>
+    <div id="gbtn"></div>
+  </div>
+
+  <div id="app">
+    <h1>sankhacooray · auth</h1>
+    <p class="sub">Apps routed through this login service, and who may access each.</p>
+    <div id="apps"><p class="empty">Loading…</p></div>
+    <p class="msg" id="msg"></p>
+    <hr>
+    <div class="card">
+      <h3 style="margin:0 0 10px">Register a new app</h3>
+      <div class="row">
+        <input id="na-id" placeholder="app id (e.g. vitals)">
+        <input id="na-name" placeholder="display name">
+      </div>
+      <div class="row">
+        <input id="na-emails" placeholder="allowed emails, comma-separated">
+        <button id="na-add">Add app</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+  const $ = (s) => document.querySelector(s);
+  const AUTH = window.PIXELS_AUTH_URL || "";
+  const CID = window.GOOGLE_CLIENT_ID || "";
+  let CRED = null;
+  function msg(t, cls) { const m = $("#msg"); m.textContent = t || ""; m.className = "msg " + (cls || ""); }
+
+  function api(params) {
+    const q = new URLSearchParams(Object.assign({ credential: CRED }, params));
+    return fetch(AUTH + "?" + q.toString()).then((r) => r.json());
+  }
+
+  // --- GIS sign-in ---
+  function onCredential(resp) {
+    CRED = resp.credential;
+    $("#signin-msg").textContent = "Checking…";
+    api({ action: "list" }).then((d) => {
+      if (d.error) { $("#signin-msg").textContent = "Only the admin account can manage access."; return; }
+      $("#signin").style.display = "none";
+      $("#app").style.display = "block";
+      render(d.apps);
+    }).catch(() => { $("#signin-msg").textContent = "Network error. Try again."; });
+  }
+
+  function initGis() {
+    if (!CID || CID.indexOf("PASTE_") === 0) { $("#signin-msg").textContent = "Missing GOOGLE_CLIENT_ID in config.js."; return; }
+    if (!(window.google && google.accounts && google.accounts.id)) { return setTimeout(initGis, 120); }
+    google.accounts.id.initialize({ client_id: CID, callback: onCredential, auto_select: true });
+    google.accounts.id.renderButton($("#gbtn"), { theme: "filled_blue", size: "large", text: "signin_with" });
+    google.accounts.id.prompt();
+  }
+  initGis();
+
+  // --- admin UI ---
+  function render(apps) {
+    const host = $("#apps");
+    if (!apps || !apps.length) { host.innerHTML = '<p class="empty">No apps registered yet.</p>'; return; }
+    host.innerHTML = "";
+    apps.forEach((a) => {
+      const card = document.createElement("div"); card.className = "card";
+      const pills = a.emails.length
+        ? a.emails.map((e) => '<span class="pill">' + e + "</span>").join("")
+        : '<span class="empty">No users yet.</span>';
+      card.innerHTML =
+        '<div class="app"><h3>' + a.app_name + ' <span class="id">' + a.app_id + "</span></h3></div>" +
+        '<div class="emails">' + pills + "</div>" +
+        '<div class="row"><input placeholder="add email to ' + a.app_id + '"><button>Add user</button></div>';
+      const input = card.querySelector("input"), btn = card.querySelector("button");
+      btn.addEventListener("click", () => {
+        const email = input.value.trim(); if (!email) return;
+        btn.disabled = true; msg("Adding " + email + "…");
+        api({ action: "addUser", app: a.app_id, email: email }).then((d) => {
+          if (d.error) { btn.disabled = false; msg(d.message || d.error, "err"); return; }
+          render(d.apps); msg("Added " + email, "ok");
+        }).catch(() => { btn.disabled = false; msg("Network error.", "err"); });
+      });
+      host.appendChild(card);
+    });
+  }
+
+  $("#na-add").addEventListener("click", () => {
+    const id = $("#na-id").value.trim(), name = $("#na-name").value.trim(), emails = $("#na-emails").value.trim();
+    if (!id) { msg("app id required", "err"); return; }
+    $("#na-add").disabled = true; msg("Adding app…");
+    api({ action: "addApp", appId: id, appName: name, emails: emails }).then((d) => {
+      $("#na-add").disabled = false;
+      if (d.error) { msg(d.message || d.error, "err"); return; }
+      render(d.apps); msg("Added app " + id, "ok");
+      $("#na-id").value = ""; $("#na-name").value = ""; $("#na-emails").value = "";
+    }).catch(() => { $("#na-add").disabled = false; msg("Network error.", "err"); });
+  });
+</script>
+</body>
+</html>
