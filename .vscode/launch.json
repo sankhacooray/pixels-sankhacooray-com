@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Serve Pixels (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:4490",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "serve:pixels"
+    }
+  ]
+}
