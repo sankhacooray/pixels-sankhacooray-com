@@ -13,4 +13,4 @@ window.PIXELS_APP_ID = "pixels";
 
 // "Sign in with Google" OAuth Client ID (created in bsc2fast's Google Cloud).
 // Public value. Paste the Client ID here once you create it.
-window.GOOGLE_CLIENT_ID = "PASTE_YOUR_OAUTH_CLIENT_ID_HERE.apps.googleusercontent.com";
+window.GOOGLE_CLIENT_ID = "493333437594-ec0vo8e856vcrk9gfb139aehdd5nvc0a.apps.googleusercontent.com";
