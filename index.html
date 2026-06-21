@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pixels · sankhacooray</title>
+<script src="https://accounts.google.com/gsi/client" async></script>
 <style>
   :root {
     --radius: 12px;
@@ -23,9 +24,22 @@
   body {
     margin: 0; background: var(--bg); color: var(--text);
     font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    opacity: 0;
   }
-  body.ready { opacity: 1; transition: opacity .15s; }
+
+  /* ---- Sign-in gate overlay ---- */
+  .gate {
+    position: fixed; inset: 0; z-index: 100; background: var(--bg);
+    display: grid; place-items: center; text-align: center; padding: 24px;
+  }
+  .gate-card { max-width: 360px; }
+  .gate-card h2 { margin: 6px 0 2px; }
+  .gate-msg { color: var(--muted); font-size: 14px; margin: 0 0 20px; }
+  .gate-msg b { color: var(--text); }
+  #gbtn { display: inline-block; min-height: 44px; }
+  .gate-switch {
+    display: block; margin: 16px auto 0; background: transparent; border: 0;
+    color: var(--accent-2); cursor: pointer; font-size: 13px; text-decoration: underline;
+  }
 
   /* ---- App bar ---- */
   .appbar {
@@ -96,6 +110,16 @@
 </head>
 <body>
 
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div style="font-size:42px">🖼️</div>
+    <h2>Pixels</h2>
+    <p class="gate-msg" id="gate-msg">Sign in to continue.</p>
+    <div id="gbtn"></div>
+    <button class="gate-switch" id="gate-switch" style="display:none">Use a different account</button>
+  </div>
+</div>
+
 <div class="appbar">
   <div class="seg" id="seg">
     <button data-media="photos" class="active">Photos</button>
@@ -144,6 +168,7 @@
   const API_BASE = window.PIXELS_API_BASE || "";
   const AUTH_URL = window.PIXELS_AUTH_URL || "";
   const APP_ID = window.PIXELS_APP_ID || "pixels";
+  const CLIENT_ID = window.GOOGLE_CLIENT_ID || "";
   const grid = $("#grid"), status = $("#status");
   let media = "photos";
 
@@ -159,15 +184,47 @@
       return p.exp * 1000 > Date.now();
     } catch (e) { return false; }
   }
-  function login() {
-    location.replace(AUTH_URL + "?app=" + encodeURIComponent(APP_ID) +
-      "&redirect=" + encodeURIComponent(location.href.split("#")[0]));
+  /* ---- Sign in with Google (GIS) ---- */
+  function showGate(msg) { $("#gate").style.display = "grid"; if (msg) $("#gate-msg").textContent = msg; }
+  function hideGate() { $("#gate").style.display = "none"; }
+
+  function onCredential(resp) {
+    $("#gate-switch").style.display = "none";
+    $("#gate-msg").textContent = "Signing in…";
+    fetch(AUTH_URL + "?app=" + encodeURIComponent(APP_ID) + "&credential=" + encodeURIComponent(resp.credential))
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && data.token) { setToken(data.token); hideGate(); initApp(); return; }
+        if (data && data.error === "forbidden") {
+          $("#gate-msg").innerHTML = "<b>" + (data.email || "That account") +
+            "</b> doesn't have access.<br>Contact Sankha (bsc2fast@gmail.com) to request it.";
+        } else {
+          $("#gate-msg").textContent = "Sign-in failed. Please try again.";
+        }
+        $("#gate-switch").style.display = "block";
+      })
+      .catch(() => { $("#gate-msg").textContent = "Network error. Please try again."; $("#gate-switch").style.display = "block"; });
+  }
+
+  function initGis() {
+    if (!CLIENT_ID || CLIENT_ID.indexOf("PASTE_") === 0) {
+      showGate("Sign-in isn't configured yet (missing Client ID)."); return;
+    }
+    if (!(window.google && google.accounts && google.accounts.id)) { return setTimeout(initGis, 120); }
+    google.accounts.id.initialize({ client_id: CLIENT_ID, callback: onCredential, auto_select: true });
+    google.accounts.id.renderButton($("#gbtn"), { theme: "filled_blue", size: "large", text: "signin_with", shape: "pill" });
+    google.accounts.id.prompt();
+  }
+
+  function switchAccount() {
+    try { google.accounts.id.disableAutoSelect(); } catch (e) {}
+    $("#gate-switch").style.display = "none";
+    $("#gate-msg").textContent = "Choose an account to continue.";
+    try { google.accounts.id.prompt(); } catch (e) {}
   }
 
   /* ---- App init (only runs once authenticated) ---- */
   function initApp() {
-    document.body.classList.add("ready");
-
     /* Theme */
     const themeBtn = $("#theme");
     function applyTheme(t) {
@@ -222,7 +279,9 @@
       const res = await fetch(API_BASE + "?" + params() + "&token=" + encodeURIComponent(getToken() || ""));
       const data = await res.json();
       if (!res.ok) throw new Error("HTTP " + res.status);
-      if (data.error === "unauthorized" || data.code === 401) { clearToken(); login(); return; }
+      if (data.error === "unauthorized" || data.code === 401) {
+        clearToken(); showGate("Your session expired — sign in again."); initGis(); return;
+      }
       if (data.error) throw new Error(data.error);
       const items = media === "photos" ? data.photos : data.videos;
       if (!items || !items.length) { setStatus("No results. Try a different query."); return; }
@@ -267,10 +326,10 @@
 
   /* ---- Gate on load ---- */
   (function gate() {
-    const m = location.hash.match(/[#&]token=([^&]+)/);
-    if (m) { setToken(decodeURIComponent(m[1])); history.replaceState(null, "", location.pathname + location.search); }
-    if (!tokenValid(getToken())) { login(); return; }
-    initApp();
+    $("#gate-switch").addEventListener("click", switchAccount);
+    if (tokenValid(getToken())) { hideGate(); initApp(); return; }
+    showGate();
+    initGis();
   })();
 </script>
 </body>
