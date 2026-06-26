@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pixels · sankhacooray</title>
 <script src="https://accounts.google.com/gsi/client" async></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 <style>
   :root {
     --radius: 12px;
@@ -106,13 +107,91 @@
   }
   .footer { margin-top: 28px; color: var(--muted); font-size: 12px; }
   .footer a { color: var(--accent-2); text-decoration: none; }
+
+  /* ---- Tab strip (connector switcher) ---- */
+  .search-controls { display: flex; gap: 12px; flex: 1; min-width: 0; }
+  .tabs { display: flex; gap: 6px; flex: none; }
+  .tab {
+    appearance: none; border: 1px solid var(--line); background: var(--bg);
+    color: var(--muted); padding: 9px 14px; border-radius: 10px; cursor: pointer;
+    font-size: 14px; font-weight: 600; white-space: nowrap;
+  }
+  .tab.active { background: var(--accent); color: #04231d; border-color: transparent; }
+
+  /* ---- Puzzle Builder connector ---- */
+  .pb-card-panel {
+    margin: 14px 0 0; background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 16px;
+    display: grid; gap: 12px;
+  }
+  .pb-presets { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .pb-presets-label { font-size: 12px; color: var(--muted); }
+  .pb-chip {
+    border: 1px solid var(--line); background: var(--bg); color: var(--text);
+    border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 13px; font-weight: 600;
+  }
+  .pb-chip:hover { border-color: var(--accent-2); }
+  .pb-chip-clear { color: var(--muted); }
+  .pb-textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--line); color: var(--text);
+    border-radius: 8px; padding: 10px 12px; font: inherit; resize: vertical; min-height: 110px;
+  }
+  .pb-textarea:focus { outline: 2px solid var(--accent-2); border-color: transparent; }
+  .pb-controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+  .pb-field { display: flex; flex-direction: column; gap: 5px; font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .04em; }
+  .pb-field input, .pb-field select {
+    background: var(--bg); border: 1px solid var(--line); color: var(--text);
+    border-radius: 8px; padding: 8px 10px; font-size: 14px; text-transform: none; letter-spacing: 0;
+  }
+  .pb-field input { width: 90px; }
+  .pb-hint { margin: 0; color: var(--muted); font-size: 12px; }
+  .pb-progress { margin: 14px 2px 0; color: var(--muted); font-size: 13px; min-height: 18px; }
+  .pb-progress.error { color: #ff8f8f; }
+
+  .pb-toolbar {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    margin: 14px 0 10px; padding: 10px 12px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  }
+  .pb-selcount { font-size: 13px; color: var(--muted); margin-right: auto; }
+  .pb-tbtn {
+    border: 1px solid var(--line); background: var(--bg); color: var(--text);
+    border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 13px; font-weight: 600;
+  }
+  .pb-tbtn-primary { padding: 8px 14px; }
+  .btn:disabled, .pb-tbtn:disabled { opacity: .55; cursor: progress; }
+
+  .pb-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+  .pb-result {
+    position: relative; background: var(--panel); border: 2px solid var(--line);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .pb-result.sel { border-color: var(--accent); }
+  .pb-imgwrap { position: relative; cursor: pointer; }
+  .pb-imgwrap img { width: 100%; display: block; background: #000; aspect-ratio: 1/1; object-fit: cover; }
+  .pb-check {
+    position: absolute; top: 8px; left: 8px; z-index: 3; width: 20px; height: 20px; cursor: pointer;
+  }
+  .pb-result .chip { top: 8px; right: 8px; }
+  .pb-qchip {
+    position: absolute; bottom: 8px; left: 8px; right: 8px; z-index: 2;
+    background: var(--chip-bg); color: var(--chip-text); backdrop-filter: blur(6px);
+    font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 8px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .pb-cropbtn {
+    position: absolute; bottom: 8px; right: 8px; z-index: 3;
+    background: var(--chip-bg); color: var(--chip-text); border: 1px solid rgba(255,255,255,.14);
+    border-radius: 8px; padding: 4px 8px; font-size: 11px; font-weight: 700; cursor: pointer;
+  }
 </style>
 </head>
 <body>
 
 <div class="gate" id="gate">
   <div class="gate-card">
-    <div style="font-size:42px">🖼️</div>
+    <i class="fa-solid fa-images" style="font-size:42px"></i>
     <h2>Pixels</h2>
     <p class="gate-msg" id="gate-msg">Sign in to continue.</p>
     <div id="gbtn"></div>
@@ -121,18 +200,21 @@
 </div>
 
 <div class="appbar">
-  <div class="seg" id="seg">
-    <button data-media="photos" class="active">Photos</button>
-    <button data-media="videos">Videos</button>
+  <div class="search-controls" id="search-controls">
+    <div class="seg" id="seg">
+      <button data-media="photos" class="active">Photos</button>
+      <button data-media="videos">Videos</button>
+    </div>
+    <form class="search" id="search">
+      <input id="query" placeholder="Search Pexels…" value="Sri Lanka landscape" autocomplete="off">
+      <button class="btn" type="submit">Search</button>
+    </form>
   </div>
-  <form class="search" id="search">
-    <input id="query" placeholder="Search Pexels…" value="Sri Lanka landscape" autocomplete="off">
-    <button class="btn" type="submit">Search</button>
-  </form>
-  <button class="icon-btn" id="theme" title="Toggle light / dark">🌙</button>
+  <button class="icon-btn" id="theme" title="Toggle light / dark"><i class="fa-solid fa-moon"></i></button>
 </div>
 
 <div class="wrap">
+  <div id="view-search">
   <div class="filters" id="filters">
     <div class="field">
       <label for="orientation">Orientation</label>
@@ -156,13 +238,21 @@
     </div>
   </div>
 
-  <p class="status" id="status"></p>
-  <div class="grid" id="grid"></div>
+    <p class="status" id="status"></p>
+    <div class="grid" id="grid"></div>
+  </div>
 
   <p class="footer">Media from <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a>.</p>
 </div>
 
 <script src="config.js"></script>
+<!-- Data engine + connector host (the pluggable platform) -->
+<script src="vendor/jszip.min.js"></script>
+<script src="vendor/smartcrop.min.js"></script>
+<script src="engine.js"></script>
+<script src="host.js"></script>
+<script src="processors/square-smart.js"></script>
+<script src="connectors/puzzle-builder.js"></script>
 <script>
   const $ = (s) => document.querySelector(s);
   const API_BASE = window.PIXELS_API_BASE || "";
@@ -229,7 +319,7 @@
     const themeBtn = $("#theme");
     function applyTheme(t) {
       document.documentElement.setAttribute("data-theme", t);
-      themeBtn.textContent = t === "dark" ? "🌙" : "☀️";
+      themeBtn.innerHTML = '<i class="fa-solid fa-' + (t === "dark" ? "moon" : "sun") + '"></i>';
       try { localStorage.setItem("pixels-theme", t); } catch (e) {}
     }
     applyTheme((function () { try { return localStorage.getItem("pixels-theme"); } catch (e) {} })() || "dark");
@@ -246,7 +336,16 @@
     });
 
     $("#search").addEventListener("submit", (e) => { e.preventDefault(); search(); });
+
+    /* Connector host: builds the tab strip, registers the built-in Search
+       view, and mounts any connectors (e.g. Puzzle Builder) as extra tabs. */
+    if (window.Pixels && Pixels.init) Pixels.init();
   }
+
+  /* Re-gate when a token expires mid-session (called by the engine/host too). */
+  window.pixelsReauth = function () {
+    clearToken(); showGate("Your session expired — sign in again."); initGis();
+  };
 
   /* ---- Quality label from pixel dimensions ---- */
   function quality(w, h) {
@@ -258,38 +357,27 @@
     return "SD";
   }
 
-  /* ---- Search ---- */
-  function params() {
-    const p = new URLSearchParams();
-    p.set("type", media);
-    p.set("query", $("#query").value.trim());
-    const o = $("#orientation").value, s = $("#size").value, pp = $("#per_page").value;
-    if (o) p.set("orientation", o);
-    if (s) p.set("size", s);
-    if (pp) p.set("per_page", pp);
-    if (media === "photos" && $("#color").value.trim()) p.set("color", $("#color").value.trim());
-    return p.toString();
-  }
-
+  /* ---- Search (now goes through PixelsEngine) ---- */
   async function search() {
     if (!$("#query").value.trim()) { setStatus("Type something to search."); return; }
     const btn = $("#search button");
     btn.disabled = true; setStatus("Searching " + media + "…"); grid.innerHTML = "";
     try {
-      const res = await fetch(API_BASE + "?" + params() + "&token=" + encodeURIComponent(getToken() || ""));
-      const data = await res.json();
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      if (data.error === "unauthorized" || data.code === 401) {
-        clearToken(); showGate("Your session expired — sign in again."); initGis(); return;
-      }
-      if (data.error) throw new Error(data.error);
-      const items = media === "photos" ? data.photos : data.videos;
-      if (!items || !items.length) { setStatus("No results. Try a different query."); return; }
-      setStatus(data.total_results != null
-        ? (items.length + " shown · ~" + data.total_results.toLocaleString() + " total")
+      const { items, total } = await PixelsEngine.search({
+        type: media,
+        query: $("#query").value,
+        orientation: $("#orientation").value,
+        size: $("#size").value,
+        perPage: $("#per_page").value,
+        color: media === "photos" ? $("#color").value.trim() : ""
+      });
+      if (!items.length) { setStatus("No results. Try a different query."); return; }
+      setStatus(total != null
+        ? (items.length + " shown · ~" + total.toLocaleString() + " total")
         : (items.length + " results"));
-      items.forEach((it) => grid.appendChild(media === "photos" ? photoCard(it) : videoCard(it)));
+      items.forEach((it) => grid.appendChild(card(it)));
     } catch (err) {
+      if (err.code === "unauthorized") { window.pixelsReauth(); return; }
       setStatus(err.message, true);
     } finally {
       btn.disabled = false;
@@ -299,29 +387,23 @@
 
   function chip(text) { const c = document.createElement("span"); c.className = "chip"; c.textContent = text; return c; }
 
-  function photoCard(p) {
-    const card = document.createElement("div"); card.className = "card";
-    const img = document.createElement("img");
-    img.loading = "lazy"; img.src = p.src.large; img.alt = p.alt || "";
-    card.append(chip(quality(p.width, p.height)), img);
-    return card;
-  }
-
-  function videoCard(v) {
-    const card = document.createElement("div"); card.className = "card";
-    // Pick the HIGHEST-resolution mp4 so fullscreen + download get full quality.
-    const files = (v.video_files || [])
-      .filter((f) => /mp4/i.test(f.file_type || "") || /\.mp4/i.test(f.link || ""))
-      .sort((a, b) => (b.width || 0) * (b.height || 0) - (a.width || 0) * (a.height || 0));
-    const file = files[0] || (v.video_files || [])[0];
-    const w = file ? file.width : v.width, h = file ? file.height : v.height;
-    const vid = document.createElement("video");
-    vid.src = file ? file.link : ""; vid.poster = v.image;
-    vid.muted = true; vid.loop = true; vid.playsInline = true; vid.controls = true; vid.preload = "metadata";
-    vid.addEventListener("mouseenter", () => vid.play().catch(() => {}));
-    vid.addEventListener("mouseleave", () => vid.pause());
-    card.append(chip(quality(w, h)), vid);
-    return card;
+  /* Unified card renderer for normalized engine items. */
+  function card(it) {
+    const c = document.createElement("div"); c.className = "card";
+    let mediaEl;
+    if (it.type === "photo") {
+      mediaEl = document.createElement("img");
+      mediaEl.loading = "lazy"; mediaEl.src = it.preview; mediaEl.alt = it.alt || "";
+    } else {
+      mediaEl = document.createElement("video");
+      mediaEl.src = it.full; mediaEl.poster = it.preview;
+      mediaEl.muted = true; mediaEl.loop = true; mediaEl.playsInline = true;
+      mediaEl.controls = true; mediaEl.preload = "metadata";
+      mediaEl.addEventListener("mouseenter", () => mediaEl.play().catch(() => {}));
+      mediaEl.addEventListener("mouseleave", () => mediaEl.pause());
+    }
+    c.append(chip(quality(it.width, it.height)), mediaEl);
+    return c;
   }
 
   /* ---- Gate on load ---- */

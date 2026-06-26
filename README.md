@@ -14,9 +14,32 @@ browser ──> Apps Script /exec (adds key) ──> api.pexels.com
 
 ## Files
 
-- `index.html` — the UI (Photos + Videos tabs, query forms, results grid).
+- `index.html` — shell UI: sign-in gate, tab strip, built-in **Search** view.
 - `config.js` — the deployed Apps Script `/exec` URL (`window.PIXELS_API_BASE`). Not a secret.
+- `engine.js` — **the data engine.** `PixelsEngine.search()` → normalized items.
+- `host.js` — connector registry + shared services (`Pixels.register`, `batchSearch`, `download`, tab strip).
+- `connectors/` — pluggable add-ons (each registers a tab). `puzzle-builder.js` = batch-query → square-crop → zip.
+- `processors/` — shared post-processors. `square-smart.js` = smartcrop saliency crop to a square.
+- `vendor/` — `jszip` (zip download) and `smartcrop` (saliency crop).
 - `CNAME` — custom domain for GitHub Pages.
+
+## Connector architecture
+
+The platform is split so features plug in without touching the base:
+
+```text
+connectors (puzzle-builder, …)   ← Pixels.register({ id, title, mount(host, panel) })
+        │ use host services
+host.js (registry · tabs · batchSearch · download · processors)
+        │
+engine.js  PixelsEngine.search()  ← the data engine (talks to the proxy)
+```
+
+A connector is just a JS object with `mount(host, panel)`. Inside `mount` it gets
+`host.engine`, `host.batchSearch(queries, opts, onProgress)`, `host.processors`,
+and `host.download(items, { mode })`. Add one: drop a file in `connectors/` and add
+one `<script>` tag — no base changes. Post-processors (e.g. crop) live in `processors/`
+and register into `Pixels.processors`.
 
 ## Run locally
 
