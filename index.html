@@ -126,6 +126,8 @@
   }
   .pb-presets { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .pb-presets-label { font-size: 12px; color: var(--muted); }
+  .pb-chips { display: contents; }
+  .pb-chip-refresh { color: var(--accent-2); }
   .pb-chip {
     border: 1px solid var(--line); background: var(--bg); color: var(--text);
     border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 13px; font-weight: 600;
@@ -210,6 +212,7 @@
       <button class="btn" type="submit">Search</button>
     </form>
   </div>
+  <a class="icon-btn" id="sheet-link" target="_blank" rel="noopener" title="Open query sheet" style="display:none"><i class="fa-solid fa-database"></i></a>
   <button class="icon-btn" id="theme" title="Toggle light / dark"><i class="fa-solid fa-moon"></i></button>
 </div>
 
@@ -340,6 +343,16 @@
     /* Connector host: builds the tab strip, registers the built-in Search
        view, and mounts any connectors (e.g. Puzzle Builder) as extra tabs. */
     if (window.Pixels && Pixels.init) Pixels.init();
+
+    /* App-bar link to the query sheet (shown once we know its URL). */
+    if (window.Pixels && Pixels.host && Pixels.host.loadGroups) {
+      Pixels.host.loadGroups().then((d) => {
+        if (d && d.sheetUrl) {
+          const a = $("#sheet-link");
+          a.href = d.sheetUrl; a.style.display = "";
+        }
+      }).catch(() => {});
+    }
   }
 
   /* Re-gate when a token expires mid-session (called by the engine/host too). */

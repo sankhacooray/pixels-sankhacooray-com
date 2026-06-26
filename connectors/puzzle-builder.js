@@ -15,7 +15,10 @@
 (function () {
   if (!window.Pixels || !Pixels.register) return;
 
-  const PRESETS = {
+  // Preset groups normally come from the linked Google Sheet (one tab per
+  // group). These built-in lists are only a fallback for when no sheet is
+  // linked yet or the fetch fails.
+  const FALLBACK_PRESETS = {
     "Scenery (SE Asia)": [
       "bali temple", "bali rice terrace", "tegalalang", "borobudur", "mount bromo",
       "thailand temple", "wat arun", "chiang mai lantern festival", "phi phi island",
@@ -62,28 +65,70 @@
       /* ----- controls card ----- */
       const card = el("div", "pb-card-panel");
 
-      // Preset chips
+      // Preset groups (one chip per Google Sheet tab; falls back to built-ins).
       const presetRow = el("div", "pb-presets");
-      presetRow.appendChild(el("span", "pb-presets-label", "Presets:"));
-      Object.keys(PRESETS).forEach(function (name) {
-        const chip = el("button", "pb-chip", name);
-        chip.type = "button";
-        chip.addEventListener("click", function () {
-          const existing = ta.value.trim() ? ta.value.trim().split("\n") : [];
-          const merged = existing.concat(PRESETS[name]);
-          // dedupe, keep order
-          const seen = {}; const out = [];
-          merged.forEach(function (q) { q = q.trim(); if (q && !seen[q]) { seen[q] = 1; out.push(q); } });
-          ta.value = out.join("\n");
-          updateQueryCount();
-        });
-        presetRow.appendChild(chip);
-      });
+      const presetLabel = el("span", "pb-presets-label", "Groups:");
+      const presetChips = el("span", "pb-chips");          // populated by renderChips()
+      const refreshBtn = el("button", "pb-chip pb-chip-refresh");
+      refreshBtn.type = "button";
+      refreshBtn.innerHTML = '<i class="fa-solid fa-rotate"></i> refresh';
+      refreshBtn.title = "Reload groups from the Google Sheet";
       const clearQ = el("button", "pb-chip pb-chip-clear", "clear");
       clearQ.type = "button";
       clearQ.addEventListener("click", function () { ta.value = ""; updateQueryCount(); });
-      presetRow.appendChild(clearQ);
+      presetRow.append(presetLabel, presetChips, refreshBtn, clearQ);
       card.appendChild(presetRow);
+
+      // Append a group's items to the textarea (dedupe, keep order).
+      function applyGroup(groupItems) {
+        const existing = ta.value.trim() ? ta.value.trim().split("\n") : [];
+        const seen = {}; const out = [];
+        existing.concat(groupItems).forEach(function (q) {
+          q = String(q).trim();
+          if (q && !seen[q]) { seen[q] = 1; out.push(q); }
+        });
+        ta.value = out.join("\n");
+        updateQueryCount();
+      }
+
+      // (Re)build the chip row from an array of { name, items }.
+      function renderChips(groups) {
+        presetChips.innerHTML = "";
+        groups.forEach(function (g) {
+          const chip = el("button", "pb-chip", g.name + " (" + g.items.length + ")");
+          chip.type = "button";
+          chip.addEventListener("click", function () { applyGroup(g.items); });
+          presetChips.appendChild(chip);
+        });
+      }
+
+      // Load groups from the linked Sheet (host caches; force re-fetches).
+      function fallbackGroups() {
+        return Object.keys(FALLBACK_PRESETS).map(function (name) {
+          return { name: name, items: FALLBACK_PRESETS[name] };
+        });
+      }
+      async function loadPresets(force) {
+        refreshBtn.disabled = true;
+        presetLabel.textContent = "Groups: loading…";
+        try {
+          const d = await host.loadGroups(force);
+          if (d && d.configured && d.groups.length) {
+            renderChips(d.groups);
+            presetLabel.textContent = "Groups:";
+          } else {
+            renderChips(fallbackGroups());
+            presetLabel.textContent = d && !d.configured ? "Groups (built-in — no sheet linked):" : "Groups (built-in):";
+          }
+        } catch (err) {
+          if (err.code === "unauthorized") { if (window.pixelsReauth) window.pixelsReauth(); return; }
+          renderChips(fallbackGroups());
+          presetLabel.textContent = "Groups (built-in — sheet unreachable):";
+        } finally {
+          refreshBtn.disabled = false;
+        }
+      }
+      refreshBtn.addEventListener("click", function () { loadPresets(true); });
 
       // Query textarea
       const ta = el("textarea", "pb-textarea");
@@ -295,6 +340,9 @@
       }
       dlOrig.addEventListener("click", function () { runDownload("original", dlOrig); });
       dlCrop.addEventListener("click", function () { runDownload("cropped", dlCrop); });
+
+      /* ----- initial load: pull groups from the Sheet ----- */
+      loadPresets();
     }
   });
 })();

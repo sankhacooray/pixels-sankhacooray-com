@@ -205,6 +205,18 @@
     triggerDownload(out, (opts.name || "pixels") + ".zip");
   }
 
+  /**
+   * Load the query groups from the linked Sheet, once and cached. The app bar
+   * (for the sheet link) and the Puzzle Builder both call this; pass
+   * force = true (Refresh button) to re-fetch the latest hand-edits.
+   */
+  let groupsCache = null;
+  async function loadGroups(force) {
+    if (groupsCache && !force) return groupsCache;
+    groupsCache = await PixelsEngine.sheet();
+    return groupsCache;
+  }
+
   /* ---------- the host object handed to every connector ---------- */
 
   const host = {
@@ -212,6 +224,7 @@
     processors: Pixels.processors,
     batchSearch: batchSearch,
     download: download,
+    loadGroups: loadGroups,
     triggerDownload: triggerDownload,
     safeName: safeName
   };

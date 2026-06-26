@@ -105,5 +105,28 @@
     return { items: items, total: data.total_results, raw: data };
   }
 
-  window.PixelsEngine = { search: search };
+  /**
+   * Fetch the Puzzle Builder query groups from the linked Google Sheet.
+   * Resolves to { groups: [{name, items}], sheetUrl, configured }.
+   * `configured` is false when no sheet has been linked server-side yet.
+   * Throws with `.code === "unauthorized"` on an expired token.
+   */
+  async function sheet() {
+    const url = API_BASE + "?type=sheet&token=" + encodeURIComponent(getToken() || "");
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data && (data.error === "unauthorized" || data.code === 401)) {
+      const err = new Error("Your session expired — sign in again.");
+      err.code = "unauthorized";
+      throw err;
+    }
+    if (data && data.error && data.error !== "no-sheet") throw new Error(data.error);
+    return {
+      groups: (data && data.groups) || [],
+      sheetUrl: (data && data.sheetUrl) || null,
+      configured: !(data && data.error === "no-sheet")
+    };
+  }
+
+  window.PixelsEngine = { search: search, sheet: sheet };
 })();
