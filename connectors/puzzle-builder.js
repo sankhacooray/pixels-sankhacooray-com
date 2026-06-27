@@ -190,6 +190,10 @@
       toolbar.style.display = "none";
       const source = el("span", "pb-source");      // where the list is served from
       source.innerHTML = '<i class="fa-solid fa-cloud"></i> Pixels Cloud';
+      const driveLink = el("a", "pb-drivelink");    // drive-mode: open the actual Drive folder
+      driveLink.target = "_blank"; driveLink.rel = "noopener";
+      driveLink.title = "Open this folder in Google Drive";
+      driveLink.innerHTML = '<i class="fa-brands fa-google-drive"></i>';
       const selCount = el("span", "pb-selcount", "");
       const selAll = el("button", "pb-tbtn", "Select all");
       const selNone = el("button", "pb-tbtn", "Clear");
@@ -204,7 +208,7 @@
       updateBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Update (delete flagged)';
       [selAll, selNone].forEach(function (b) { b.type = "button"; });
       [dlOrig, dlCrop, saveBtn, newSearchBtn, updateBtn].forEach(function (b) { b.type = "button"; });
-      toolbar.append(source, selCount, selAll, selNone, dlOrig, dlCrop, saveBtn, newSearchBtn, updateBtn);
+      toolbar.append(source, driveLink, selCount, selAll, selNone, dlOrig, dlCrop, saveBtn, newSearchBtn, updateBtn);
       panel.appendChild(toolbar);
 
       /* ----- results grid ----- */
@@ -236,6 +240,12 @@
         source.innerHTML = drive
           ? '<i class="fa-brands fa-google-drive"></i> My Drive · ' + (driveSetName || "set")
           : '<i class="fa-solid fa-cloud"></i> Pixels Cloud';
+        if (drive && driveFolderId) {
+          driveLink.href = "https://drive.google.com/drive/folders/" + driveFolderId;
+          driveLink.style.display = "flex";
+        } else {
+          driveLink.style.display = "none";
+        }
       }
 
       /* ----- selection (single source of truth: the `selected` Set) ----- */
