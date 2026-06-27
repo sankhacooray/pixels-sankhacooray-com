@@ -186,6 +186,8 @@
       /* ----- results toolbar ----- */
       const toolbar = el("div", "pb-toolbar");
       toolbar.style.display = "none";
+      const source = el("span", "pb-source");      // where the list is served from
+      source.innerHTML = '<i class="fa-solid fa-cloud"></i> Pixels Cloud';
       const selCount = el("span", "pb-selcount", "");
       const selAll = el("button", "pb-tbtn", "Select all");
       const selNone = el("button", "pb-tbtn", "Clear");
@@ -193,7 +195,7 @@
       const dlCrop = el("button", "btn pb-tbtn-primary", "Download 2048² crops");
       [selAll, selNone].forEach(function (b) { b.type = "button"; });
       [dlOrig, dlCrop].forEach(function (b) { b.type = "button"; });
-      toolbar.append(selCount, selAll, selNone, dlOrig, dlCrop);
+      toolbar.append(source, selCount, selAll, selNone, dlOrig, dlCrop);
       panel.appendChild(toolbar);
 
       /* ----- results grid ----- */
@@ -203,9 +205,32 @@
       function refreshSelCount() {
         selCount.textContent = selected.size + " of " + items.length + " selected";
         dlOrig.disabled = dlCrop.disabled = selected.size === 0;
+        if (viewerOpen) updateViewerBadge();
       }
 
-      function makeCard(it) {
+      /* ----- selection (single source of truth: the `selected` Set) ----- */
+      function selBtnHtml(on) {
+        return on
+          ? '<i class="fa-solid fa-check"></i> selected'
+          : '<i class="fa-regular fa-square-plus"></i> select';
+      }
+      function cardByKey(key) {
+        return gridEl.querySelector('.pb-result[data-key="' +
+          (window.CSS && CSS.escape ? CSS.escape(key) : key) + '"]');
+      }
+      function setSelected(key, on) {
+        if (on) selected.add(key); else selected.delete(key);
+        const cardEl = cardByKey(key);
+        if (cardEl) {
+          cardEl.classList.toggle("sel", on);
+          const b = cardEl.querySelector(".pb-selbtn");
+          if (b) { b.classList.toggle("on", on); b.innerHTML = selBtnHtml(on); }
+        }
+        refreshSelCount();
+      }
+      function toggleSelected(key) { setSelected(key, !selected.has(key)); }
+
+      function makeCard(it, idx) {
         const k = keyOf(it);
         const c = el("div", "pb-result");
         c.dataset.key = k;
@@ -215,14 +240,13 @@
         img.loading = "lazy"; img.src = it.preview; img.alt = it.alt || "";
         imgWrap.appendChild(img);
 
-        const cb = el("input", "pb-check"); cb.type = "checkbox";
-        cb.checked = selected.has(k);
-        cb.addEventListener("change", function () {
-          if (cb.checked) selected.add(k); else selected.delete(k);
-          c.classList.toggle("sel", cb.checked);
-          refreshSelCount();
-        });
-        c.classList.toggle("sel", cb.checked);
+        // per-photo select button (green when selected; outlines the card green)
+        const selBtn = el("button", "pb-selbtn");
+        selBtn.type = "button";
+        selBtn.innerHTML = selBtnHtml(selected.has(k));
+        selBtn.classList.toggle("on", selected.has(k));
+        selBtn.addEventListener("click", function (e) { e.stopPropagation(); toggleSelected(k); });
+        c.classList.toggle("sel", selected.has(k));
 
         const qchip = el("span", "pb-qchip", it.query);
         const qual = el("span", "chip", quality(it.width, it.height));
@@ -234,7 +258,8 @@
         cropBtn.type = "button";
         cropBtn.innerHTML = CROP_LABEL;
         let cropped = false, croppedUrl = null;
-        cropBtn.addEventListener("click", async function () {
+        cropBtn.addEventListener("click", async function (e) {
+          e.stopPropagation();
           if (cropped) { img.src = it.preview; cropBtn.innerHTML = CROP_LABEL; cropped = false; return; }
           cropBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; cropBtn.disabled = true;
           try {
@@ -243,29 +268,104 @@
               croppedUrl = r.dataUrl;
             }
             img.src = croppedUrl; cropBtn.innerHTML = ORIG_LABEL; cropped = true;
-          } catch (e) {
+          } catch (e2) {
             cropBtn.innerHTML = '<i class="fa-solid fa-xmark"></i> failed';
           } finally { cropBtn.disabled = false; }
         });
 
-        // click image toggles selection too (but let the checkbox / crop
-        // button handle their own clicks, else we'd double-toggle)
-        imgWrap.addEventListener("click", function (e) {
-          if (e.target === cropBtn || e.target === cb) return;
-          cb.checked = !cb.checked;
-          cb.dispatchEvent(new Event("change"));
-        });
+        // clicking the photo opens the large viewer (selection is the button / space bar)
+        imgWrap.addEventListener("click", function () { openViewer(idx); });
 
-        imgWrap.append(cb, qual, qchip, cropBtn);
+        imgWrap.append(selBtn, qual, qchip, cropBtn);
         c.appendChild(imgWrap);
         return c;
       }
 
       function renderGrid() {
+        if (viewerOpen) closeViewer();
         gridEl.innerHTML = "";
-        items.forEach(function (it) { gridEl.appendChild(makeCard(it)); });
+        items.forEach(function (it, idx) { gridEl.appendChild(makeCard(it, idx)); });
         toolbar.style.display = items.length ? "flex" : "none";
         refreshSelCount();
+      }
+
+      /* ----- photo viewer (large view; space = select, arrows = navigate) ----- */
+      let viewerEl = null, viewerImg = null, viewerPos = null, viewerCount = null, viewerSel = null;
+      let viewerOpen = false, curIndex = 0;
+
+      function buildViewer() {
+        viewerEl = el("div", "pb-viewer");
+
+        const bar = el("div", "pb-viewer-bar");
+        viewerPos = el("span", "pb-viewer-pos");
+        viewerCount = el("span", "pb-viewer-count");
+        const spacer = el("span"); spacer.style.flex = "1";
+        const hint = el("span", "pb-viewer-hint", "Space = select · ← → navigate · Esc = exit");
+        const exitBtn = el("button", "pb-viewer-exit");
+        exitBtn.type = "button";
+        exitBtn.innerHTML = '<i class="fa-solid fa-xmark"></i> Exit';
+        exitBtn.addEventListener("click", closeViewer);
+        bar.append(viewerPos, viewerCount, spacer, hint, exitBtn);
+
+        const stage = el("div", "pb-viewer-stage");
+        const prev = el("button", "pb-viewer-nav");
+        prev.type = "button"; prev.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
+        prev.addEventListener("click", function () { viewerNav(-1); });
+        const next = el("button", "pb-viewer-nav");
+        next.type = "button"; next.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+        next.addEventListener("click", function () { viewerNav(1); });
+
+        const wrap = el("div", "pb-viewer-imgwrap");
+        viewerImg = el("img", "pb-viewer-img");
+        viewerSel = el("button", "pb-viewer-sel");
+        viewerSel.type = "button";
+        viewerSel.addEventListener("click", function () { toggleSelected(keyOf(items[curIndex])); });
+        wrap.append(viewerImg, viewerSel);
+        stage.append(prev, wrap, next);
+
+        viewerEl.append(bar, stage);
+        viewerEl.addEventListener("click", function (e) { if (e.target === viewerEl) closeViewer(); });
+        document.body.appendChild(viewerEl);
+      }
+
+      function openViewer(index) {
+        if (!items.length) return;
+        if (!viewerEl) buildViewer();
+        curIndex = index; viewerOpen = true;
+        viewerEl.style.display = "flex";
+        document.addEventListener("keydown", viewerKey);
+        renderViewer();
+      }
+      function renderViewer() {
+        const it = items[curIndex];
+        viewerImg.src = it.full || it.preview;
+        viewerImg.alt = it.alt || "";
+        viewerPos.textContent = (curIndex + 1) + " / " + items.length;
+        updateViewerBadge();
+      }
+      function updateViewerBadge() {
+        if (!viewerSel) return;
+        const on = selected.has(keyOf(items[curIndex]));
+        viewerSel.classList.toggle("on", on);
+        viewerSel.innerHTML = on
+          ? '<i class="fa-solid fa-circle-check"></i> Selected'
+          : '<i class="fa-regular fa-circle"></i> Select';
+        viewerCount.textContent = "Selected: " + selected.size;
+      }
+      function viewerNav(delta) {
+        curIndex = (curIndex + delta + items.length) % items.length;
+        renderViewer();
+      }
+      function closeViewer() {
+        viewerOpen = false;
+        if (viewerEl) viewerEl.style.display = "none";
+        document.removeEventListener("keydown", viewerKey);
+      }
+      function viewerKey(e) {
+        if (e.key === "ArrowRight") { e.preventDefault(); viewerNav(1); }
+        else if (e.key === "ArrowLeft") { e.preventDefault(); viewerNav(-1); }
+        else if (e.key === " " || e.code === "Space") { e.preventDefault(); toggleSelected(keyOf(items[curIndex])); }
+        else if (e.key === "Escape") { e.preventDefault(); closeViewer(); }
       }
 
       /* ----- build ----- */
@@ -301,16 +401,10 @@
 
       /* ----- selection + download ----- */
       selAll.addEventListener("click", function () {
-        items.forEach(function (it) { selected.add(keyOf(it)); });
-        gridEl.querySelectorAll(".pb-check").forEach(function (cb) { cb.checked = true; });
-        gridEl.querySelectorAll(".pb-result").forEach(function (c) { c.classList.add("sel"); });
-        refreshSelCount();
+        items.forEach(function (it) { setSelected(keyOf(it), true); });
       });
       selNone.addEventListener("click", function () {
-        selected.clear();
-        gridEl.querySelectorAll(".pb-check").forEach(function (cb) { cb.checked = false; });
-        gridEl.querySelectorAll(".pb-result").forEach(function (c) { c.classList.remove("sel"); });
-        refreshSelCount();
+        items.forEach(function (it) { setSelected(keyOf(it), false); });
       });
 
       function selectedItems() {
