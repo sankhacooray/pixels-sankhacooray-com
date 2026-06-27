@@ -227,7 +227,9 @@
   async function saveSet(name, items, opts) {
     opts = opts || {};
     const size = opts.size || 2048;
-    const created = await PixelsEngine.post({ action: "newSet", name: name });
+    // One id per save so a retried newSet reuses the same folder (no dupes).
+    const batchId = "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    const created = await PixelsEngine.post({ action: "newSet", name: name, batchId: batchId });
     const files = [];
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
