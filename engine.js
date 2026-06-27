@@ -128,5 +128,26 @@
     };
   }
 
-  window.PixelsEngine = { search: search, sheet: sheet };
+  /**
+   * POST a write action to the proxy (save / delete). Sent as text/plain so
+   * the browser skips the CORS preflight. Returns the parsed JSON; throws with
+   * `.code === "unauthorized"` on an expired token, or Error on any `error`.
+   */
+  async function post(payload) {
+    const res = await fetch(API_BASE, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(Object.assign({ token: getToken() || "" }, payload || {}))
+    });
+    const data = await res.json();
+    if (data && (data.error === "unauthorized" || data.code === 401)) {
+      const err = new Error("Your session expired — sign in again.");
+      err.code = "unauthorized";
+      throw err;
+    }
+    if (data && data.error) throw new Error(data.error);
+    return data;
+  }
+
+  window.PixelsEngine = { search: search, sheet: sheet, post: post };
 })();

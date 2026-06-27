@@ -193,9 +193,11 @@
       const selNone = el("button", "pb-tbtn", "Clear");
       const dlOrig = el("button", "btn pb-tbtn-primary", "Download originals");
       const dlCrop = el("button", "btn pb-tbtn-primary", "Download 2048² crops");
+      const saveBtn = el("button", "btn pb-tbtn-primary pb-save");
+      saveBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Save to Drive';
       [selAll, selNone].forEach(function (b) { b.type = "button"; });
-      [dlOrig, dlCrop].forEach(function (b) { b.type = "button"; });
-      toolbar.append(source, selCount, selAll, selNone, dlOrig, dlCrop);
+      [dlOrig, dlCrop, saveBtn].forEach(function (b) { b.type = "button"; });
+      toolbar.append(source, selCount, selAll, selNone, dlOrig, dlCrop, saveBtn);
       panel.appendChild(toolbar);
 
       /* ----- results grid ----- */
@@ -204,7 +206,7 @@
 
       function refreshSelCount() {
         selCount.textContent = selected.size + " of " + items.length + " selected";
-        dlOrig.disabled = dlCrop.disabled = selected.size === 0;
+        dlOrig.disabled = dlCrop.disabled = saveBtn.disabled = selected.size === 0;
         if (viewerOpen) updateViewerBadge();
       }
 
@@ -434,6 +436,60 @@
       }
       dlOrig.addEventListener("click", function () { runDownload("original", dlOrig); });
       dlCrop.addEventListener("click", function () { runDownload("cropped", dlCrop); });
+
+      /* ----- save selected to a Drive set ----- */
+      function pad2(n) { return (n < 10 ? "0" : "") + n; }
+      function defaultSetName() {
+        const d = new Date();
+        const stamp = d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) +
+          " " + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+        const first = selectedItems()[0];
+        return (first ? first.query : "set") + " " + stamp;
+      }
+      let blockEl = null, blockText = null;
+      function block(on, text) {
+        if (!blockEl) {
+          blockEl = el("div", "pb-block");
+          const box = el("div", "pb-block-box");
+          const spin = el("i", "fa-solid fa-spinner fa-spin"); spin.style.fontSize = "28px";
+          blockText = el("div", "pb-block-text", "");
+          box.append(spin, blockText);
+          blockEl.appendChild(box);
+          document.body.appendChild(blockEl);
+        }
+        if (text != null) blockText.textContent = text;
+        blockEl.style.display = on ? "flex" : "none";
+      }
+      saveBtn.addEventListener("click", async function () {
+        const chosen = selectedItems();
+        if (!chosen.length) return;
+        const name = window.prompt("Name this saved set:", defaultSetName());
+        if (name === null) return;                     // cancelled
+        const setName = name.trim() || defaultSetName();
+        if (viewerOpen) closeViewer();
+        block(true, "Saving 0/" + chosen.length + "…");
+        progress.classList.remove("error");
+        try {
+          const result = await host.saveSet(setName, chosen, {
+            size: parseInt(sizeSel.value, 10) || 2048,
+            onProgress: function (p) {
+              const verb = p.phase === "crop" ? "Cropping" : "Uploading";
+              block(true, verb + " " + (p.index + 1) + "/" + p.total + " — “" + p.query + "”");
+            }
+          });
+          progress.textContent = "Saved " + result.files.length + " images to “" + result.name + "”. ";
+          const a = el("a", null, "Open in Drive ↗");
+          a.href = "https://drive.google.com/drive/folders/" + result.folderId;
+          a.target = "_blank"; a.rel = "noopener";
+          progress.appendChild(a);
+          progress.appendChild(document.createTextNode(" · find it later in the Saved tab."));
+        } catch (err) {
+          if (err.code === "unauthorized") { if (window.pixelsReauth) window.pixelsReauth(); }
+          else { progress.textContent = "Save failed: " + err.message; progress.classList.add("error"); }
+        } finally {
+          block(false);
+        }
+      });
 
       /* ----- initial load: pull groups from the Sheet ----- */
       loadPresets();

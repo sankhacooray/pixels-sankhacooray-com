@@ -217,6 +217,33 @@
     return groupsCache;
   }
 
+  /* ---------- Drive: save / list / load / delete saved sets ---------- */
+
+  /**
+   * Save selected items as a new Drive set: crop each to a square, upload it,
+   * and return { folderId, name, files:[{fileId,url,query,name}] }.
+   *   onProgress({ index, total, phase:'crop'|'upload', query })
+   */
+  async function saveSet(name, items, opts) {
+    opts = opts || {};
+    const size = opts.size || 2048;
+    const created = await PixelsEngine.post({ action: "newSet", name: name });
+    const files = [];
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (opts.onProgress) opts.onProgress({ index: i, total: items.length, phase: "crop", query: it.query });
+      const cropped = await Pixels.processors["square-smart"](it, { size: size });
+      const base64 = cropped.dataUrl.split(",")[1];
+      const filename = safeName(it.query) + "-" + it.id + ".jpg";
+      if (opts.onProgress) opts.onProgress({ index: i, total: items.length, phase: "upload", query: it.query });
+      const up = await PixelsEngine.post({
+        action: "saveImage", folderId: created.folderId, filename: filename, dataBase64: base64
+      });
+      files.push({ fileId: up.fileId, url: up.url, query: it.query, name: filename });
+    }
+    return { folderId: created.folderId, name: created.name, files: files };
+  }
+
   /* ---------- the host object handed to every connector ---------- */
 
   const host = {
@@ -225,6 +252,7 @@
     batchSearch: batchSearch,
     download: download,
     loadGroups: loadGroups,
+    saveSet: saveSet,
     triggerDownload: triggerDownload,
     safeName: safeName
   };
