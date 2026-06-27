@@ -48,8 +48,26 @@
           status.textContent = sets.length + " saved set" + (sets.length === 1 ? "" : "s") + ".";
           sets.forEach(function (s) {
             const card = el("div", "saved-card");
+
+            // first 4 photos as a thumbnail strip
+            const strip = el("div", "saved-thumbs");
+            (s.thumbs || []).slice(0, 4).forEach(function (u) {
+              const im = el("img");
+              im.loading = "lazy"; im.src = u;
+              im.addEventListener("error", function () {          // fresh-upload thumbnail lag
+                if (im.dataset.retried) return;
+                im.dataset.retried = "1";
+                setTimeout(function () { im.src = u + (u.indexOf("?") >= 0 ? "&" : "?") + "r=" + Date.now(); }, 1500);
+              });
+              strip.appendChild(im);
+            });
+            if ((s.thumbs || []).length) card.appendChild(strip);
+
             const name = el("div", "saved-name", s.name);
-            const meta = el("div", "saved-meta", s.created ? new Date(s.created).toLocaleString() : "");
+            const metaText = (s.count != null ? s.count + " photo" + (s.count === 1 ? "" : "s") : "") +
+              (s.count != null && s.created ? " · " : "") +
+              (s.created ? new Date(s.created).toLocaleString() : "");
+            const meta = el("div", "saved-meta", metaText);
             const open = el("button", "btn", "Open");
             open.type = "button";
             open.addEventListener("click", function () {
