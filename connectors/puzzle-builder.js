@@ -57,8 +57,10 @@
     title: "Puzzle Builder",
     icon: "fa-solid fa-puzzle-piece",
     mount: function (host, panel) {
-      let items = [];                 // merged results
-      const selected = new Set();     // keys (type:id) currently selected
+      let items = [];                 // current photos (pixels results OR a drive set)
+      const selected = new Set();     // marked keys — "to save" (pixels) / "to delete" (drive)
+      let mode = "pixels";            // "pixels" | "drive"
+      let driveFolderId = null, driveSetName = "";
 
       const keyOf = function (it) { return it.type + ":" + it.id; };
 
@@ -195,9 +197,14 @@
       const dlCrop = el("button", "btn pb-tbtn-primary", "Download 2048² crops");
       const saveBtn = el("button", "btn pb-tbtn-primary pb-save");
       saveBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Save to Drive';
+      // drive-mode only
+      const newSearchBtn = el("button", "pb-tbtn");
+      newSearchBtn.innerHTML = '<i class="fa-solid fa-arrow-left"></i> New search';
+      const updateBtn = el("button", "btn pb-tbtn-primary pb-update");
+      updateBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Update (delete flagged)';
       [selAll, selNone].forEach(function (b) { b.type = "button"; });
-      [dlOrig, dlCrop, saveBtn].forEach(function (b) { b.type = "button"; });
-      toolbar.append(source, selCount, selAll, selNone, dlOrig, dlCrop, saveBtn);
+      [dlOrig, dlCrop, saveBtn, newSearchBtn, updateBtn].forEach(function (b) { b.type = "button"; });
+      toolbar.append(source, selCount, selAll, selNone, dlOrig, dlCrop, saveBtn, newSearchBtn, updateBtn);
       panel.appendChild(toolbar);
 
       /* ----- results grid ----- */
@@ -205,13 +212,39 @@
       panel.appendChild(gridEl);
 
       function refreshSelCount() {
-        selCount.textContent = selected.size + " of " + items.length + " selected";
-        dlOrig.disabled = dlCrop.disabled = saveBtn.disabled = selected.size === 0;
+        if (mode === "drive") {
+          selCount.textContent = selected.size + " of " + items.length + " flagged for deletion";
+          updateBtn.disabled = selected.size === 0;
+        } else {
+          selCount.textContent = selected.size + " of " + items.length + " selected";
+          dlOrig.disabled = dlCrop.disabled = saveBtn.disabled = selected.size === 0;
+        }
         if (viewerOpen) updateViewerBadge();
+      }
+
+      /* ----- mode switch (pixels = select-to-save · drive = flag-to-delete) ----- */
+      function setMode(m) {
+        mode = m;
+        if (viewerOpen) closeViewer();
+        const drive = m === "drive";
+        card.style.display = drive ? "none" : "";          // hide the build UI for saved sets
+        gridEl.classList.toggle("drive", drive);
+        selAll.style.display = drive ? "none" : "";
+        dlOrig.style.display = dlCrop.style.display = saveBtn.style.display = drive ? "none" : "";
+        updateBtn.style.display = newSearchBtn.style.display = drive ? "" : "none";
+        selNone.textContent = drive ? "Clear flags" : "Clear";
+        source.innerHTML = drive
+          ? '<i class="fa-brands fa-google-drive"></i> My Drive · ' + (driveSetName || "set")
+          : '<i class="fa-solid fa-cloud"></i> Pixels Cloud';
       }
 
       /* ----- selection (single source of truth: the `selected` Set) ----- */
       function selBtnHtml(on) {
+        if (mode === "drive") {
+          return on
+            ? '<i class="fa-solid fa-trash"></i> flagged'
+            : '<i class="fa-regular fa-trash-can"></i> delete';
+        }
         return on
           ? '<i class="fa-solid fa-check"></i> selected'
           : '<i class="fa-regular fa-square-plus"></i> select';
@@ -242,7 +275,7 @@
         img.loading = "lazy"; img.src = it.preview; img.alt = it.alt || "";
         imgWrap.appendChild(img);
 
-        // per-photo select button (green when selected; outlines the card green)
+        // per-photo toggle: select-to-save (green) in pixels mode, flag-to-delete (red) in drive
         const selBtn = el("button", "pb-selbtn");
         selBtn.type = "button";
         selBtn.innerHTML = selBtnHtml(selected.has(k));
@@ -250,35 +283,50 @@
         selBtn.addEventListener("click", function (e) { e.stopPropagation(); toggleSelected(k); });
         c.classList.toggle("sel", selected.has(k));
 
-        const qchip = el("span", "pb-qchip", it.query);
-        const qual = el("span", "chip", quality(it.width, it.height));
+        const children = [selBtn];
 
-        // original <-> cropped preview toggle
-        const CROP_LABEL = '<i class="fa-solid fa-crop-simple"></i> crop';
-        const ORIG_LABEL = '<i class="fa-solid fa-arrow-rotate-left"></i> original';
-        const cropBtn = el("button", "pb-cropbtn");
-        cropBtn.type = "button";
-        cropBtn.innerHTML = CROP_LABEL;
-        let cropped = false, croppedUrl = null;
-        cropBtn.addEventListener("click", async function (e) {
-          e.stopPropagation();
-          if (cropped) { img.src = it.preview; cropBtn.innerHTML = CROP_LABEL; cropped = false; return; }
-          cropBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; cropBtn.disabled = true;
-          try {
-            if (!croppedUrl) {
-              const r = await Pixels.processors["square-smart"](it, { size: 1024 });
-              croppedUrl = r.dataUrl;
-            }
-            img.src = croppedUrl; cropBtn.innerHTML = ORIG_LABEL; cropped = true;
-          } catch (e2) {
-            cropBtn.innerHTML = '<i class="fa-solid fa-xmark"></i> failed';
-          } finally { cropBtn.disabled = false; }
-        });
+        if (mode === "drive") {
+          // freshly-saved Drive thumbnails can lag a moment — retry once
+          img.addEventListener("error", function () {
+            if (img.dataset.retried) return;
+            img.dataset.retried = "1";
+            setTimeout(function () {
+              img.src = it.preview + (it.preview.indexOf("?") >= 0 ? "&" : "?") + "r=" + Date.now();
+            }, 1500);
+          });
+        } else {
+          const qual = el("span", "chip", quality(it.width, it.height));
+          const qchip = el("span", "pb-qchip", it.query);
+          children.push(qual, qchip);
 
-        // clicking the photo opens the large viewer (selection is the button / space bar)
+          // original <-> cropped preview toggle
+          const CROP_LABEL = '<i class="fa-solid fa-crop-simple"></i> crop';
+          const ORIG_LABEL = '<i class="fa-solid fa-arrow-rotate-left"></i> original';
+          const cropBtn = el("button", "pb-cropbtn");
+          cropBtn.type = "button";
+          cropBtn.innerHTML = CROP_LABEL;
+          let cropped = false, croppedUrl = null;
+          cropBtn.addEventListener("click", async function (e) {
+            e.stopPropagation();
+            if (cropped) { img.src = it.preview; cropBtn.innerHTML = CROP_LABEL; cropped = false; return; }
+            cropBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; cropBtn.disabled = true;
+            try {
+              if (!croppedUrl) {
+                const r = await Pixels.processors["square-smart"](it, { size: 1024 });
+                croppedUrl = r.dataUrl;
+              }
+              img.src = croppedUrl; cropBtn.innerHTML = ORIG_LABEL; cropped = true;
+            } catch (e2) {
+              cropBtn.innerHTML = '<i class="fa-solid fa-xmark"></i> failed';
+            } finally { cropBtn.disabled = false; }
+          });
+          children.push(cropBtn);
+        }
+
+        // clicking the photo opens the large viewer (mark via the button / space bar)
         imgWrap.addEventListener("click", function () { openViewer(idx); });
 
-        imgWrap.append(selBtn, qual, qchip, cropBtn);
+        imgWrap.append.apply(imgWrap, children);
         c.appendChild(imgWrap);
         return c;
       }
@@ -348,11 +396,19 @@
       function updateViewerBadge() {
         if (!viewerSel) return;
         const on = selected.has(keyOf(items[curIndex]));
+        viewerEl.classList.toggle("drive", mode === "drive");
         viewerSel.classList.toggle("on", on);
-        viewerSel.innerHTML = on
-          ? '<i class="fa-solid fa-circle-check"></i> Selected'
-          : '<i class="fa-regular fa-circle"></i> Select';
-        viewerCount.textContent = "Selected: " + selected.size;
+        if (mode === "drive") {
+          viewerSel.innerHTML = on
+            ? '<i class="fa-solid fa-trash"></i> Flagged'
+            : '<i class="fa-regular fa-trash-can"></i> Delete';
+          viewerCount.textContent = "Flagged: " + selected.size;
+        } else {
+          viewerSel.innerHTML = on
+            ? '<i class="fa-solid fa-circle-check"></i> Selected'
+            : '<i class="fa-regular fa-circle"></i> Select';
+          viewerCount.textContent = "Selected: " + selected.size;
+        }
       }
       function viewerNav(delta) {
         curIndex = (curIndex + delta + items.length) % items.length;
@@ -370,10 +426,69 @@
         else if (e.key === "Escape") { e.preventDefault(); closeViewer(); }
       }
 
+      /* ----- enter / load a Drive set (drive mode) ----- */
+      function enterDriveSet(folderId, name, images) {
+        driveFolderId = folderId; driveSetName = name;
+        items = (images || []).map(function (im) {
+          const id = im.fileId || im.id;
+          return { id: id, type: "drive", query: name, fileId: id, preview: im.url, full: im.url, alt: name };
+        });
+        selected.clear();
+        setMode("drive");
+        renderGrid();
+      }
+      async function loadDriveSet(meta) {
+        if (Pixels.activate) Pixels.activate("puzzle-builder");
+        driveSetName = meta.name; driveFolderId = meta.id;
+        setMode("drive");
+        items = []; gridEl.innerHTML = ""; toolbar.style.display = "none";
+        progress.classList.remove("error");
+        progress.textContent = "Loading “" + meta.name + "”…";
+        try {
+          const images = await host.loadSet(meta.id);
+          enterDriveSet(meta.id, meta.name, images);
+          progress.textContent = images.length + " image" + (images.length === 1 ? "" : "s") + " in “" + meta.name + "”.";
+        } catch (err) {
+          if (err.code === "unauthorized") { if (window.pixelsReauth) window.pixelsReauth(); return; }
+          progress.textContent = "Could not load set: " + err.message;
+          progress.classList.add("error");
+        }
+      }
+      // let the Saved tab drive us
+      window.PixelsPuzzle = { loadDriveSet: loadDriveSet };
+
+      newSearchBtn.addEventListener("click", function () {
+        items = []; selected.clear(); gridEl.innerHTML = "";
+        toolbar.style.display = "none"; progress.textContent = "";
+        setMode("pixels");
+      });
+
+      updateBtn.addEventListener("click", async function () {
+        const flagged = items.filter(function (it) { return selected.has(keyOf(it)); });
+        if (!flagged.length) return;
+        if (!window.confirm("Delete " + flagged.length + " flagged image" + (flagged.length === 1 ? "" : "s") +
+          " from “" + driveSetName + "”? This can't be undone.")) return;
+        if (viewerOpen) closeViewer();
+        block(true, "Deleting " + flagged.length + "…");
+        try {
+          await host.deleteFiles(flagged.map(function (it) { return it.fileId; }));
+          const images = await host.loadSet(driveFolderId);
+          enterDriveSet(driveFolderId, driveSetName, images);
+          progress.textContent = "Deleted " + flagged.length + " · " + images.length + " remaining in “" + driveSetName + "”.";
+          progress.classList.remove("error");
+        } catch (err) {
+          if (err.code === "unauthorized") { if (window.pixelsReauth) window.pixelsReauth(); }
+          else { progress.textContent = "Update failed: " + err.message; progress.classList.add("error"); }
+        } finally {
+          block(false);
+        }
+      });
+
       /* ----- build ----- */
       buildBtn.addEventListener("click", async function () {
         const queries = ta.value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
         if (!queries.length) { progress.textContent = "Add at least one query."; return; }
+        if (mode !== "pixels") setMode("pixels");
         buildBtn.disabled = true;
         items = []; selected.clear(); gridEl.innerHTML = ""; toolbar.style.display = "none";
         progress.classList.remove("error");
@@ -477,12 +592,13 @@
               block(true, verb + " " + (p.index + 1) + "/" + p.total + " — “" + p.query + "”");
             }
           });
-          progress.textContent = "Saved " + result.files.length + " images to “" + result.name + "”. ";
+          // flip to the saved set, served from Drive
+          enterDriveSet(result.folderId, result.name, result.files);
+          progress.textContent = "Saved " + result.files.length + " images to “" + result.name + "” — now showing from Drive. ";
           const a = el("a", null, "Open in Drive ↗");
           a.href = "https://drive.google.com/drive/folders/" + result.folderId;
           a.target = "_blank"; a.rel = "noopener";
           progress.appendChild(a);
-          progress.appendChild(document.createTextNode(" · find it later in the Saved tab."));
         } catch (err) {
           if (err.code === "unauthorized") { if (window.pixelsReauth) window.pixelsReauth(); }
           else { progress.textContent = "Save failed: " + err.message; progress.classList.add("error"); }

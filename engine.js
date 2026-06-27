@@ -175,5 +175,23 @@
     throw lastErr;
   }
 
-  window.PixelsEngine = { search: search, sheet: sheet, post: post };
+  /** GET a JSON resource from the proxy (token appended). Throws on error. */
+  async function getJson_(qs) {
+    const res = await fetch(API_BASE + qs + "&token=" + encodeURIComponent(getToken() || ""));
+    const data = await res.json();
+    if (data && (data.error === "unauthorized" || data.code === 401)) {
+      const err = new Error("Your session expired — sign in again.");
+      err.code = "unauthorized";
+      throw err;
+    }
+    if (data && data.error) throw new Error(data.error);
+    return data;
+  }
+
+  /** List saved Drive sets → [{ id, name, created }]. */
+  async function sets() { return (await getJson_("?type=sets")).sets || []; }
+  /** Load one saved set's images → [{ id, name, url }]. */
+  async function set(id) { return (await getJson_("?type=set&id=" + encodeURIComponent(id))).images || []; }
+
+  window.PixelsEngine = { search: search, sheet: sheet, post: post, sets: sets, set: set };
 })();

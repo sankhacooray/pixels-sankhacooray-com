@@ -246,6 +246,10 @@
     return { folderId: created.folderId, name: created.name, files: files };
   }
 
+  function loadSets() { return PixelsEngine.sets(); }
+  function loadSet(id) { return PixelsEngine.set(id); }
+  function deleteFiles(fileIds) { return PixelsEngine.post({ action: "deleteFiles", fileIds: fileIds }); }
+
   /* ---------- the host object handed to every connector ---------- */
 
   const host = {
@@ -255,6 +259,9 @@
     download: download,
     loadGroups: loadGroups,
     saveSet: saveSet,
+    loadSets: loadSets,
+    loadSet: loadSet,
+    deleteFiles: deleteFiles,
     triggerDownload: triggerDownload,
     safeName: safeName
   };
