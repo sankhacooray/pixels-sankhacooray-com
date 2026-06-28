@@ -39,6 +39,8 @@
   }
 
   function addTabButton(view) {
+    const wrap = document.createElement("div");
+    wrap.className = "tab-wrap";
     const b = document.createElement("button");
     b.className = "tab";
     b.type = "button";
@@ -51,7 +53,37 @@
     b.appendChild(document.createTextNode(view.title));
     b.addEventListener("click", function () { activate(view.id); });
     view._btn = b;
-    tabStrip.appendChild(b);
+    view._wrap = wrap;
+    wrap.appendChild(b);
+    tabStrip.appendChild(wrap);
+  }
+
+  /**
+   * Attach a refresh button to a view's tab, runnable only while that view is
+   * the active one. Connectors call Pixels.setRefresh(id, fn) during mount.
+   */
+  function setRefresh(id, fn) {
+    const v = views.find(function (x) { return x.id === id; });
+    if (!v) return;
+    v.refresh = fn;
+    if (!v._refreshBtn) {
+      v._wrap.classList.add("has-refresh");
+      const r = document.createElement("button");
+      r.className = "tab-refresh";
+      r.type = "button";
+      r.title = "Refresh";
+      r.innerHTML = '<i class="fa-solid fa-rotate"></i>';
+      r.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (activeView === v && v.refresh) v.refresh();
+      });
+      v._refreshBtn = r;
+      v._wrap.appendChild(r);
+    }
+    updateRefreshStates();
+  }
+  function updateRefreshStates() {
+    views.forEach(function (v) { if (v._refreshBtn) v._refreshBtn.disabled = (v !== activeView); });
   }
 
   function activate(id) {
@@ -61,6 +93,7 @@
     activeView = v;
     v.activate();
     views.forEach(function (x) { x._btn.classList.toggle("active", x === v); });
+    updateRefreshStates();
   }
 
   /* ---------- views ---------- */
@@ -70,7 +103,7 @@
     const controls = $("#search-controls");
     const panel = $("#view-search");
     const view = {
-      id: "search", title: "Search", icon: "fa-solid fa-magnifying-glass",
+      id: "search", title: "Pixels Library", icon: "fa-solid fa-magnifying-glass",
       activate: function () { if (controls) controls.style.display = ""; if (panel) panel.style.display = ""; },
       deactivate: function () { if (controls) controls.style.display = "none"; if (panel) panel.style.display = "none"; }
     };
@@ -269,5 +302,6 @@
   Pixels.register = register;
   Pixels.init = init;
   Pixels.activate = activate;
+  Pixels.setRefresh = setRefresh;
   Pixels.host = host;
 })();

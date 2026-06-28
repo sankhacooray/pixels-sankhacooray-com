@@ -111,12 +111,29 @@
   /* ---- Tab strip (connector switcher) ---- */
   .search-controls { display: flex; gap: 12px; flex: 1; min-width: 0; }
   .tabs { display: flex; gap: 6px; flex: none; }
+  .tab-wrap { display: inline-flex; }
   .tab {
     appearance: none; border: 1px solid var(--line); background: var(--bg);
     color: var(--muted); padding: 9px 14px; border-radius: 10px; cursor: pointer;
     font-size: 14px; font-weight: 600; white-space: nowrap;
   }
   .tab.active { background: var(--accent); color: #04231d; border-color: transparent; }
+  .tab-wrap.has-refresh .tab { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+  .tab-refresh {
+    appearance: none; border: 1px solid var(--line); border-left: 0; background: var(--bg);
+    color: var(--muted); padding: 9px 11px; border-radius: 0 10px 10px 0; cursor: pointer; font-size: 13px;
+  }
+  .tab-refresh:not(:disabled) { color: var(--accent-2); }
+  .tab-refresh:disabled { opacity: .35; cursor: default; }
+  .appbar-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+
+  /* ---- Footer bar ---- */
+  .appfooter {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
+    background: var(--panel); border-top: 1px solid var(--line);
+    padding: 6px 18px; font-size: 12px; color: var(--muted); text-align: center;
+  }
+  .appfooter a { color: var(--accent-2); text-decoration: none; }
 
   /* ---- Puzzle Builder connector ---- */
   .pb-card-panel {
@@ -231,9 +248,11 @@
   .saved-list { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); margin-top: 16px; }
   .saved-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
     padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
-  .saved-thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px;
+  .saved-thumbs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px;
     border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
   .saved-thumbs img { width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block; background: #000; }
+  .saved-card { cursor: pointer; }
+  .saved-card:hover { border-color: var(--accent-2); }
   .saved-name { font-weight: 700; word-break: break-word; }
   .saved-meta { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
   .saved-card .btn { align-self: flex-start; }
@@ -271,8 +290,10 @@
       <button class="btn" type="submit">Search</button>
     </form>
   </div>
-  <a class="icon-btn" id="sheet-link" target="_blank" rel="noopener" title="Open query sheet" style="display:none"><i class="fa-solid fa-database"></i></a>
-  <button class="icon-btn" id="theme" title="Toggle light / dark"><i class="fa-solid fa-moon"></i></button>
+  <div class="appbar-right">
+    <a class="icon-btn" id="sheet-link" target="_blank" rel="noopener" title="Open query sheet" style="display:none"><i class="fa-solid fa-database"></i></a>
+    <button class="icon-btn" id="theme" title="Toggle light / dark"><i class="fa-solid fa-moon"></i></button>
+  </div>
 </div>
 
 <div class="wrap">
@@ -303,9 +324,9 @@
     <p class="status" id="status"></p>
     <div class="grid" id="grid"></div>
   </div>
-
-  <p class="footer">Media from <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a>.</p>
 </div>
+
+<div class="appfooter">Media from <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a>.</div>
 
 <script src="config.js"></script>
 <!-- Data engine + connector host (the pluggable platform) -->
@@ -403,6 +424,8 @@
     /* Connector host: builds the tab strip, registers the built-in Search
        view, and mounts any connectors (e.g. Puzzle Builder) as extra tabs. */
     if (window.Pixels && Pixels.init) Pixels.init();
+    // Pixels Library tab gets a refresh button that re-runs the current search.
+    if (window.Pixels && Pixels.setRefresh) Pixels.setRefresh("search", function () { search(); });
 
     /* App-bar link to the query sheet (shown once we know its URL). */
     if (window.Pixels && Pixels.host && Pixels.host.loadGroups) {
