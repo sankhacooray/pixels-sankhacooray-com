@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -306,7 +306,7 @@
   </div>
   <div class="appbar-right">
     <a class="icon-btn" id="sheet-link" target="_blank" rel="noopener" title="Open query sheet" style="display:none"><i class="fa-solid fa-database"></i></a>
-    <button class="icon-btn" id="theme" title="Toggle light / dark"><i class="fa-solid fa-moon"></i></button>
+    <button class="icon-btn" id="theme" title="Toggle light / dark"><i class="fa-solid fa-sun"></i></button>
   </div>
 </div>
 
@@ -420,7 +420,7 @@
       themeBtn.innerHTML = '<i class="fa-solid fa-' + (t === "dark" ? "moon" : "sun") + '"></i>';
       try { localStorage.setItem("pixels-theme", t); } catch (e) {}
     }
-    applyTheme((function () { try { return localStorage.getItem("pixels-theme"); } catch (e) {} })() || "dark");
+    applyTheme((function () { try { return localStorage.getItem("pixels-theme"); } catch (e) {} })() || "light");
     themeBtn.addEventListener("click", () =>
       applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark"));
 
