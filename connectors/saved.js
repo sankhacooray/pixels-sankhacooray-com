@@ -20,27 +20,31 @@
     title: "My Library",
     icon: "fa-solid fa-bookmark",
     mount: function (host, panel) {
-      const bar = el("div", "pb-card-panel");
-      const head = el("div", "pb-presets");
-      head.appendChild(el("span", "pb-presets-label", "Previous searches (saved to Drive):"));
-      bar.appendChild(head);
-      const status = el("p", "pb-hint", "");
-      bar.appendChild(status);
-      panel.appendChild(bar);
-
       const list = el("div", "saved-list");
       panel.appendChild(list);
 
-      async function load() {
-        status.textContent = "Loading…";
+      function skeletonCard() {
+        const c = el("div", "saved-card skeleton");
+        const strip = el("div", "saved-thumbs");
+        for (let i = 0; i < 4; i++) strip.appendChild(el("div", "sk sk-thumb"));
+        c.append(strip, el("div", "sk sk-line"), el("div", "sk sk-line short"));
+        return c;
+      }
+      function message(text) {
         list.innerHTML = "";
+        list.appendChild(el("p", "saved-empty", text));
+      }
+
+      async function load() {
+        list.innerHTML = "";
+        for (let i = 0; i < 3; i++) list.appendChild(skeletonCard());   // loading shimmer
         try {
           const sets = await host.loadSets();
           if (!sets.length) {
-            status.textContent = "No saved sets yet. Build a search, select photos, and Save to Drive.";
+            message("No saved sets yet. Build a search, select photos, and Save to Drive.");
             return;
           }
-          status.textContent = sets.length + " saved set" + (sets.length === 1 ? "" : "s") + ".";
+          list.innerHTML = "";
           sets.forEach(function (s) {
             const card = el("div", "saved-card");
 
@@ -77,7 +81,7 @@
           });
         } catch (err) {
           if (err.code === "unauthorized") { if (window.pixelsReauth) window.pixelsReauth(); return; }
-          status.textContent = "Could not load saved sets: " + err.message;
+          message("Could not load saved sets: " + err.message);
         }
       }
 

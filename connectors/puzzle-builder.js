@@ -350,7 +350,7 @@
       }
 
       /* ----- photo viewer (large view; space = select, arrows = navigate) ----- */
-      let viewerEl = null, viewerImg = null, viewerPos = null, viewerCount = null, viewerSel = null;
+      let viewerEl = null, viewerImg = null, viewerPos = null, viewerCount = null, viewerSel = null, viewerHint = null;
       let viewerOpen = false, curIndex = 0;
 
       function buildViewer() {
@@ -360,28 +360,29 @@
         viewerPos = el("span", "pb-viewer-pos");
         viewerCount = el("span", "pb-viewer-count");
         const spacer = el("span"); spacer.style.flex = "1";
-        const hint = el("span", "pb-viewer-hint", "Space = select · ← → navigate · Esc = exit");
+        viewerHint = el("span", "pb-viewer-hint", "");
         const exitBtn = el("button", "pb-viewer-exit");
         exitBtn.type = "button";
         exitBtn.innerHTML = '<i class="fa-solid fa-xmark"></i> Exit';
         exitBtn.addEventListener("click", closeViewer);
-        bar.append(viewerPos, viewerCount, spacer, hint, exitBtn);
+        bar.append(viewerPos, viewerCount, spacer, viewerHint, exitBtn);
 
         const stage = el("div", "pb-viewer-stage");
-        const prev = el("button", "pb-viewer-nav");
+        const prev = el("button", "pb-viewer-nav pb-viewer-prev");
         prev.type = "button"; prev.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
         prev.addEventListener("click", function () { viewerNav(-1); });
-        const next = el("button", "pb-viewer-nav");
+        const next = el("button", "pb-viewer-nav pb-viewer-next");
         next.type = "button"; next.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
         next.addEventListener("click", function () { viewerNav(1); });
 
-        const wrap = el("div", "pb-viewer-imgwrap");
+        // figure shrink-wraps the image so the badge sits on the image corner
+        const fig = el("div", "pb-viewer-fig");
         viewerImg = el("img", "pb-viewer-img");
         viewerSel = el("button", "pb-viewer-sel");
         viewerSel.type = "button";
         viewerSel.addEventListener("click", function () { toggleSelected(keyOf(items[curIndex])); });
-        wrap.append(viewerImg, viewerSel);
-        stage.append(prev, wrap, next);
+        fig.append(viewerImg, viewerSel);
+        stage.append(prev, fig, next);
 
         viewerEl.append(bar, stage);
         viewerEl.addEventListener("click", function (e) { if (e.target === viewerEl) closeViewer(); });
@@ -413,11 +414,13 @@
             ? '<i class="fa-solid fa-trash"></i> Flagged'
             : '<i class="fa-regular fa-trash-can"></i> Delete';
           viewerCount.textContent = "Flagged: " + selected.size;
+          if (viewerHint) viewerHint.textContent = "Space / Delete = flag · ← → navigate · Esc = exit";
         } else {
           viewerSel.innerHTML = on
             ? '<i class="fa-solid fa-circle-check"></i> Selected'
             : '<i class="fa-regular fa-circle"></i> Select';
           viewerCount.textContent = "Selected: " + selected.size;
+          if (viewerHint) viewerHint.textContent = "Space = select · ← → navigate · Esc = exit";
         }
       }
       function viewerNav(delta) {
@@ -433,6 +436,7 @@
         if (e.key === "ArrowRight") { e.preventDefault(); viewerNav(1); }
         else if (e.key === "ArrowLeft") { e.preventDefault(); viewerNav(-1); }
         else if (e.key === " " || e.code === "Space") { e.preventDefault(); toggleSelected(keyOf(items[curIndex])); }
+        else if ((e.key === "Delete" || e.key === "Backspace") && mode === "drive") { e.preventDefault(); toggleSelected(keyOf(items[curIndex])); }
         else if (e.key === "Escape") { e.preventDefault(); closeViewer(); }
       }
 
@@ -457,7 +461,7 @@
         try {
           const images = await host.loadSet(meta.id);
           enterDriveSet(meta.id, meta.name, images);
-          progress.textContent = images.length + " image" + (images.length === 1 ? "" : "s") + " in “" + meta.name + "”.";
+          progress.textContent = "";   // source bar already names the set — avoid redundant line
         } catch (err) {
           if (err.code === "unauthorized") { if (window.pixelsReauth) window.pixelsReauth(); return; }
           progress.textContent = "Could not load set: " + err.message;
