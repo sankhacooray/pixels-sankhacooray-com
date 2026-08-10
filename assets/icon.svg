@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#171c24"/>
+      <stop offset="1" stop-color="#0e1116"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0" stop-color="#05a081" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#05a081" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="112" fill="url(#glow)"/>
+  <!-- photo / image frame: rounded rect with a sun and a mountain line — central safe zone -->
+  <g fill="none" stroke="#05a081" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="122" y="140" width="268" height="232" rx="34"/>
+    <circle cx="196" cy="212" r="24" fill="#05a081" stroke="none"/>
+    <path d="M150 344 L238 258 L294 306 L330 278 L362 306"/>
+  </g>
+</svg>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 630px; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #0e1116;
+    color: #e7edf3;
+    background-image:
+      radial-gradient(900px 460px at 16% -8%, rgba(5,160,129,0.14), transparent 60%),
+      radial-gradient(820px 560px at 104% 18%, rgba(56,189,248,0.10), transparent 60%);
+    padding: 72px 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 500;
+    color: #05a081; text-transform: uppercase; letter-spacing: 4px;
+  }
+  h1 {
+    font-family: 'Instrument Serif', serif; font-weight: 400;
+    font-size: 96px; line-height: 1.02; letter-spacing: -2px; margin-top: 28px;
+  }
+  h1 em { color: #05a081; font-style: italic; }
+  .lede {
+    font-size: 25px; color: #93a1b0; max-width: 720px; margin-top: 30px; line-height: 1.45;
+  }
+  .foot { display: flex; align-items: baseline; gap: 18px; }
+  .mark { font-family: 'Instrument Serif', serif; font-size: 40px; color: #05a081; letter-spacing: -0.5px; }
+  .by { font-family: 'JetBrains Mono', monospace; font-size: 17px; color: #93a1b0; letter-spacing: 1px; }
+  .url { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 17px; color: #93a1b0; letter-spacing: 1px; }
+  .frame { position: absolute; right: 70px; top: 78px; opacity: 0.9; }
+</style>
+</head>
+<body>
+  <svg class="frame" width="300" height="200" viewBox="0 0 300 200">
+    <g fill="none" stroke="#38bdf8" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.85">
+      <rect x="34" y="18" width="196" height="150" rx="18"/>
+      <rect x="70" y="42" width="196" height="150" rx="18" stroke="#05a081"/>
+      <circle cx="116" cy="86" r="14" fill="#05a081" stroke="none"/>
+      <path d="M96 168 L152 116 L188 148 L214 126 L242 148" stroke="#05a081"/>
+    </g>
+  </svg>
+
+  <div>
+    <div class="eyebrow">images · search · preview</div>
+    <h1>A clean lens on<br><em>stock imagery</em>.</h1>
+    <div class="lede">Search and preview high-quality free photos, fast — a tidy front end over a curated image feed.</div>
+  </div>
+
+  <div class="foot">
+    <span class="mark">pixels</span>
+    <span class="by">Sankha Cooray</span>
+    <span class="url">pixels.sankhacooray.com</span>
+  </div>
+</body>
+</html>
