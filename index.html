@@ -239,6 +239,18 @@
   <div class="appbar-right">
     <a class="icon-btn" id="sheet-link" target="_blank" rel="noopener" title="Open the query sheet" aria-label="Open the query sheet" style="display:none"><i class="fa-solid fa-database"></i></a>
     <button class="icon-btn theme-btn" id="theme" type="button" title="Switch to dark theme" aria-label="Switch to dark theme"><i class="fa-solid fa-moon ico-to-dark"></i><i class="fa-solid fa-sun ico-to-light"></i></button>
+    <div class="profile" id="profile">
+      <button class="avatar-btn" id="avatar-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="profile-menu" title="Account">
+        <img class="avatar-img" alt="" referrerpolicy="no-referrer"><span class="avatar-initial"><i class="fa-solid fa-user"></i></span>
+      </button>
+      <div class="profile-menu" id="profile-menu" role="menu" hidden>
+        <div class="pm-head">
+          <span class="pm-avatar"><img class="avatar-img" alt="" referrerpolicy="no-referrer"><span class="avatar-initial"><i class="fa-solid fa-user"></i></span></span>
+          <div class="pm-id"><strong id="pm-name">Signed in</strong><span id="pm-email"></span></div>
+        </div>
+        <button class="pm-item" id="signout-btn" type="button" role="menuitem"><i class="fa-solid fa-arrow-right-from-bracket"></i>Sign out</button>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -303,7 +315,65 @@
   /* ---- Auth gate (token from auth-sankhacooray-com) ---- */
   function getToken() { try { return sessionStorage.getItem("pixels-token"); } catch (e) { return null; } }
   function setToken(t) { try { sessionStorage.setItem("pixels-token", t); } catch (e) {} }
-  function clearToken() { try { sessionStorage.removeItem("pixels-token"); } catch (e) {} }
+  function clearToken() { try { sessionStorage.removeItem("pixels-token"); sessionStorage.removeItem("pixels-profile"); } catch (e) {} }
+
+  /* ---- Signed-in profile (name, email, photo from the Google credential) ---- */
+  function jwtPayload(t) {
+    const b = t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(decodeURIComponent(escape(atob(b))));
+  }
+  function saveProfile(credential) {
+    try {
+      const p = jwtPayload(credential);
+      sessionStorage.setItem("pixels-profile", JSON.stringify({ name: p.name || "", email: p.email || "", picture: p.picture || "" }));
+    } catch (e) {}
+  }
+  function loadProfile() {
+    try { const p = JSON.parse(sessionStorage.getItem("pixels-profile")); if (p) return p; } catch (e) {}
+    // Sessions from before profiles were saved: the app token may still carry the email.
+    try {
+      const b = getToken().split(".")[0].replace(/-/g, "+").replace(/_/g, "/");
+      const t = JSON.parse(decodeURIComponent(escape(atob(b))));
+      return { email: t.email || "", name: t.name || "", picture: t.picture || "" };
+    } catch (e) { return {}; }
+  }
+  function renderProfile() {
+    const p = loadProfile();
+    const label = p.name || p.email || "Signed in";
+    $("#pm-name").textContent = label;
+    $("#pm-email").textContent = p.name && p.email ? p.email : "";
+    $("#avatar-btn").title = label;
+    document.querySelectorAll("#profile .avatar-img").forEach((img) => {
+      img.onerror = () => { img.removeAttribute("src"); img.closest("button, .pm-avatar").classList.remove("has-photo"); };
+      if (p.picture) { img.src = p.picture; img.closest("button, .pm-avatar").classList.add("has-photo"); }
+    });
+    document.querySelectorAll("#profile .avatar-initial").forEach((s) => {
+      s.textContent = (p.name || p.email || "").trim().charAt(0).toUpperCase();
+      if (!s.textContent) s.innerHTML = '<i class="fa-solid fa-user"></i>';
+    });
+  }
+  function setMenu(open) {
+    $("#profile-menu").hidden = !open;
+    $("#avatar-btn").setAttribute("aria-expanded", open ? "true" : "false");
+    if (open) $("#signout-btn").focus();
+  }
+  function signOut() {
+    setMenu(false);
+    clearToken();
+    try { google.accounts.id.disableAutoSelect(); } catch (e) {}
+    $("#gate-msg").textContent = "You're signed out. Sign in with your Google account to continue.";
+    $("#gate-switch").style.display = "none";
+    showGate();
+    initGis();
+  }
+  (function wireProfile() {
+    $("#avatar-btn").addEventListener("click", (e) => { e.stopPropagation(); setMenu($("#profile-menu").hidden); });
+    $("#signout-btn").addEventListener("click", signOut);
+    document.addEventListener("click", (e) => { if (!e.target.closest("#profile")) setMenu(false); });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !$("#profile-menu").hidden) { setMenu(false); $("#avatar-btn").focus(); }
+    });
+  })();
   function tokenValid(t) {
     if (!t) return false;
     try {
@@ -331,7 +401,7 @@
     fetch(AUTH_URL + "?app=" + encodeURIComponent(APP_ID) + "&credential=" + encodeURIComponent(resp.credential))
       .then((r) => r.json())
       .then((data) => {
-        if (data && data.token) { setToken(data.token); hideGate(); initApp(); return; }
+        if (data && data.token) { setToken(data.token); saveProfile(resp.credential); renderProfile(); hideGate(); initApp(); return; }
         if (data && data.error === "forbidden") {
           $("#gate-msg").innerHTML = "<b>" + (data.email || "That account") +
             "</b> doesn't have access.<br>Contact Sankha (bsc2fast@gmail.com) to request it.";
@@ -348,9 +418,9 @@
       showGate("Sign-in isn't configured yet (missing Client ID)."); return;
     }
     if (!(window.google && google.accounts && google.accounts.id)) { return setTimeout(initGis, 120); }
-    google.accounts.id.initialize({ client_id: CLIENT_ID, callback: onCredential, auto_select: true });
+    // No One Tap and no auto-select: signing in only ever starts from the button.
+    google.accounts.id.initialize({ client_id: CLIENT_ID, callback: onCredential, auto_select: false });
     google.accounts.id.renderButton($("#gbtn"), { theme: "filled_blue", size: "large", text: "signin_with", shape: "pill" });
-    google.accounts.id.prompt();
   }
 
   function switchAccount() {
@@ -540,7 +610,7 @@
   /* ---- Gate on load ---- */
   (function gate() {
     $("#gate-switch").addEventListener("click", switchAccount);
-    if (tokenValid(getToken())) { hideGate(); initApp(); return; }
+    if (tokenValid(getToken())) { renderProfile(); hideGate(); initApp(); return; }
     showGate();
     initGis();
   })();

@@ -129,6 +129,38 @@ html[data-theme="dark"] .theme-btn .ico-to-dark { display: none; }
 .brand-name { font: 400 26px/1 "Instrument Serif", Georgia, serif; letter-spacing: -.3px; padding-right: 4px; }
 .appbar-right { display: flex; align-items: center; gap: 4px; margin-left: auto; flex: none; }
 
+/* ---------- Profile avatar + menu ---------- */
+.profile { position: relative; flex: none; margin-left: 4px; }
+.avatar-btn, .pm-avatar {
+  position: relative; width: 38px; height: 38px; border-radius: 50%; flex: none; overflow: hidden;
+  display: grid; place-items: center; padding: 0; border: 0;
+  background: rgba(5,160,129,.14); color: var(--accent); font: 700 15px/1 "DM Sans", sans-serif;
+}
+.avatar-btn { cursor: pointer; box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px transparent; transition: box-shadow .15s ease; }
+.avatar-btn:hover, .avatar-btn[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
+.avatar-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
+.has-photo .avatar-img { display: block; }
+.has-photo .avatar-initial { visibility: hidden; }
+.profile-menu {
+  position: absolute; right: 0; top: calc(100% + 10px); z-index: 60; width: min(280px, calc(100vw - 32px));
+  background: var(--surface); border-radius: 16px; padding: 8px;
+  box-shadow: var(--ring), var(--shadow-lg);
+}
+.profile-menu[hidden] { display: none; }
+.pm-head { display: flex; align-items: center; gap: 12px; padding: 10px 10px 12px; }
+.pm-avatar { width: 44px; height: 44px; font-size: 17px; }
+.pm-id { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pm-id strong { font-size: 14px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pm-id span { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pm-id span:empty { display: none; }
+.pm-item {
+  width: 100%; display: flex; align-items: center; gap: 10px; padding: 11px 12px; border: 0; border-radius: 10px;
+  background: transparent; color: var(--text); font: 600 14px/1 "DM Sans", sans-serif; cursor: pointer; text-align: left;
+  transition: background-color .15s ease;
+}
+.pm-item:hover, .pm-item:focus-visible { background: var(--surface-2); }
+.pm-item i { width: 16px; color: var(--muted); font-size: 14px; }
+
 /* ---------- Tabs (built by host.js) ---------- */
 .tabs {
   display: flex; gap: 4px; flex: 0 1 auto; min-width: 0;
