@@ -15,6 +15,7 @@ browser ──> Apps Script /exec (adds key) ──> api.pexels.com
 ## Files
 
 - `index.html` — shell UI: sign-in gate, tab strip, built-in **Search** view.
+- `landing.css` / `landing.js` — signed-out landing page (the `#gate` block); sign-in opens from its app-bar CTA.
 - `config.js` — the deployed Apps Script `/exec` URL (`window.PIXELS_API_BASE`). Not a secret.
 - `engine.js` — **the data engine.** `PixelsEngine.search()` → normalized items.
 - `host.js` — connector registry + shared services (`Pixels.register`, `batchSearch`, `download`, tab strip).

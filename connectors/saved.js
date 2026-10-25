@@ -25,32 +25,58 @@
 
       function skeletonCard() {
         const c = el("div", "saved-card skeleton");
+        c.setAttribute("aria-hidden", "true");
         const strip = el("div", "saved-thumbs");
         for (let i = 0; i < 4; i++) strip.appendChild(el("div", "sk sk-thumb"));
         c.append(strip, el("div", "sk sk-line"), el("div", "sk sk-line short"));
         return c;
       }
-      function message(text) {
+      function message(icon, title, text, danger, action) {
         list.innerHTML = "";
-        list.appendChild(el("p", "saved-empty", text));
+        const box = el("div", "empty");
+        const ico = el("div", "empty-ico" + (danger ? " danger" : ""));
+        ico.innerHTML = '<i class="' + icon + '"></i>';
+        box.append(ico, el("h2", null, title), el("p", null, text));
+        if (action) {
+          const row = el("div", "empty-actions");
+          const b = el("button", "btn-ghost"); b.type = "button";
+          b.innerHTML = '<i class="' + action.icon + '"></i>' + action.label;
+          b.addEventListener("click", action.run);
+          row.appendChild(b); box.appendChild(row);
+        }
+        list.appendChild(box);
+      }
+      function fmtDate(iso) {
+        const d = new Date(iso);
+        if (isNaN(d)) return "";
+        const sameYear = d.getFullYear() === new Date().getFullYear();
+        return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: sameYear ? undefined : "numeric" }) +
+          ", " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
       }
 
       async function load() {
         list.innerHTML = "";
-        for (let i = 0; i < 3; i++) list.appendChild(skeletonCard());   // loading shimmer
+        list.setAttribute("aria-busy", "true");
+        for (let i = 0; i < 8; i++) list.appendChild(skeletonCard());   // loading shimmer
         try {
           const sets = await host.loadSets();
           if (!sets.length) {
-            message("No saved sets yet. Build a search, select photos, and Save to Drive.");
+            message("fa-regular fa-bookmark", "No saved sets yet",
+              "Build a set in Puzzle Builder, select the photos you like and save them to Drive. They show up here.",
+              false, { icon: "fa-solid fa-puzzle-piece", label: "Open Puzzle Builder", run: function () { Pixels.activate("puzzle-builder"); } });
             return;
           }
           list.innerHTML = "";
           sets.forEach(function (s) {
             const card = el("div", "saved-card");
+            card.tabIndex = 0;
+            card.setAttribute("role", "button");
 
-            // first 4 photos as a thumbnail strip
-            const strip = el("div", "saved-thumbs");
-            (s.thumbs || []).slice(0, 4).forEach(function (u) {
+            // first 4 photos as a thumbnail mosaic
+            const thumbs = (s.thumbs || []).slice(0, 4);
+            const strip = el("div", "saved-thumbs n" + thumbs.length);
+            if (!thumbs.length) strip.innerHTML = '<i class="fa-regular fa-images"></i>';
+            thumbs.forEach(function (u) {
               const im = el("img");
               im.loading = "lazy"; im.src = u;
               im.addEventListener("error", function () {          // fresh-upload thumbnail lag
@@ -60,33 +86,41 @@
               });
               strip.appendChild(im);
             });
-            if ((s.thumbs || []).length) card.appendChild(strip);
+            if (s.count != null) {
+              strip.appendChild(el("span", "chip saved-count", s.count + " photo" + (s.count === 1 ? "" : "s")));
+            }
+            card.appendChild(strip);
 
             const name = el("div", "saved-name", s.name);
-            const metaText = (s.count != null ? s.count + " photo" + (s.count === 1 ? "" : "s") : "") +
-              (s.count != null && s.created ? " · " : "") +
-              (s.created ? new Date(s.created).toLocaleString() : "");
-            const meta = el("div", "saved-meta", metaText);
+            const meta = el("div", "saved-meta", s.created ? fmtDate(s.created) : "");
             card.append(name, meta);
 
-            // whole card opens the set
+            // whole card opens the set (click, Enter or Space)
             card.title = "Open “" + s.name + "”";
-            card.addEventListener("click", function () {
+            card.setAttribute("aria-label", "Open " + s.name);
+            function open() {
               if (Pixels.activate) Pixels.activate("puzzle-builder");   // ensure it's mounted
               if (window.PixelsPuzzle) {
                 window.PixelsPuzzle.loadDriveSet({ id: s.id, name: s.name });
               }
+            }
+            card.addEventListener("click", open);
+            card.addEventListener("keydown", function (e) {
+              if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
             });
             list.appendChild(card);
           });
         } catch (err) {
-          if (err.code === "unauthorized") { if (window.pixelsReauth) window.pixelsReauth(); return; }
-          message("Could not load saved sets: " + err.message);
+          if (err.code === "unauthorized") { list.innerHTML = ""; if (window.pixelsReauth) window.pixelsReauth(); return; }
+          message("fa-solid fa-triangle-exclamation", "Could not load saved sets", err.message, true,
+            { icon: "fa-solid fa-rotate", label: "Try again", run: function () { load(); } });
+        } finally {
+          list.removeAttribute("aria-busy");
         }
       }
 
       // refresh lives on the My Library tab button (active only when selected)
-      if (Pixels.setRefresh) Pixels.setRefresh("saved", load);
+      if (Pixels.setRefresh) Pixels.setRefresh("saved", function () { return load(); });
       load();
     }
   });

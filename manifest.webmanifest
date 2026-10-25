@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Pixels · sankhacooray",
   "short_name": "pixels",
-  "description": "A clean, fast lens on free stock imagery. Search high-quality photos, preview them large and pick the one you need, all from one tidy page.",
+  "description": "Turn a list of ideas into a finished image set. Pixels batch-searches Pexels, smart-crops every photo to a square and saves your picks to Google Drive.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

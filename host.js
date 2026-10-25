@@ -34,8 +34,11 @@
     tabStrip = document.createElement("div");
     tabStrip.className = "tabs";
     tabStrip.id = "tabs";
+    tabStrip.setAttribute("role", "tablist");
+    tabStrip.setAttribute("aria-label", "Views");
     const appbar = $(".appbar");
-    appbar.insertBefore(tabStrip, appbar.firstChild);
+    const brand = appbar.querySelector(".brand");
+    appbar.insertBefore(tabStrip, brand ? brand.nextSibling : appbar.firstChild);
   }
 
   function addTabButton(view) {
@@ -44,13 +47,22 @@
     const b = document.createElement("button");
     b.className = "tab";
     b.type = "button";
+    b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", "false");
     if (view.icon) {            // view.icon is a Font Awesome class string
       const i = document.createElement("i");
       i.className = view.icon;
+      i.setAttribute("aria-hidden", "true");
       b.appendChild(i);
-      b.appendChild(document.createTextNode(" "));
     }
-    b.appendChild(document.createTextNode(view.title));
+    const label = document.createElement("span");
+    label.textContent = view.title;
+    b.appendChild(label);
+    const badge = document.createElement("span");   // live count (Pixels.setBadge)
+    badge.className = "tab-badge";
+    badge.hidden = true;
+    b.appendChild(badge);
+    view._badge = badge;
     b.addEventListener("click", function () { activate(view.id); });
     view._btn = b;
     view._wrap = wrap;
@@ -71,11 +83,20 @@
       const r = document.createElement("button");
       r.className = "tab-refresh";
       r.type = "button";
-      r.title = "Refresh";
+      r.title = "Refresh " + v.title;
+      r.setAttribute("aria-label", "Refresh " + v.title);
       r.innerHTML = '<i class="fa-solid fa-rotate"></i>';
       r.addEventListener("click", function (e) {
         e.stopPropagation();
-        if (activeView === v && v.refresh) v.refresh();
+        if (activeView !== v || !v.refresh || r.classList.contains("spinning")) return;
+        // spin while a returned promise is pending; always stops (success or failure)
+        let ret;
+        try { ret = v.refresh(); } catch (err) { ret = null; }
+        if (ret && typeof ret.then === "function") {
+          r.classList.add("spinning");
+          const stop = function () { r.classList.remove("spinning"); };
+          ret.then(stop, stop);
+        }
       });
       v._refreshBtn = r;
       v._wrap.appendChild(r);
@@ -92,8 +113,41 @@
     if (activeView) activeView.deactivate();
     activeView = v;
     v.activate();
-    views.forEach(function (x) { x._btn.classList.toggle("active", x === v); });
+    views.forEach(function (x) {
+      x._btn.classList.toggle("active", x === v);
+      x._btn.setAttribute("aria-selected", x === v ? "true" : "false");
+      x._wrap.classList.toggle("active", x === v);
+    });
     updateRefreshStates();
+    try { localStorage.setItem("pixels-tab", v.id); } catch (e) {}
+    if (v._btn.scrollIntoView && tabStrip.scrollWidth > tabStrip.clientWidth) {
+      v._btn.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
+  }
+
+  /** Small count badge on a tab (n = 0 hides it). tone: "accent" | "danger". */
+  function setBadge(id, n, tone) {
+    const v = views.find(function (x) { return x.id === id; });
+    if (!v || !v._badge) return;
+    v._badge.hidden = !n;
+    v._badge.textContent = n ? String(n) : "";
+    v._badge.classList.toggle("danger", tone === "danger");
+  }
+
+  /* ←/→ switch tabs, unless typing, or an overlay (viewer, dialog) is open. */
+  function onTabKey(e) {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    const t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    if (document.querySelector(".pb-viewer[style*='flex'], .pb-block[style*='flex'], .pb-dialog-wrap[style*='flex']")) return;
+    if (document.documentElement.classList.contains("landing")) return;
+    const i = views.indexOf(activeView);
+    if (i < 0) return;
+    const next = views[(i + (e.key === "ArrowRight" ? 1 : -1) + views.length) % views.length];
+    e.preventDefault();
+    activate(next.id);
+    if (t && t.closest && t.closest(".tabs")) next._btn.focus();
   }
 
   /* ---------- views ---------- */
@@ -146,7 +200,14 @@
     registerBuiltinSearch();
     pending.splice(0).forEach(wireConnector);
     initialized = true;
-    activate("search");
+    let start = "search";            // reopen the last tab used in this browser
+    try {
+      const saved = localStorage.getItem("pixels-tab");
+      if (saved && views.some(function (x) { return x.id === saved; })) start = saved;
+    } catch (e) {}
+    views.forEach(function (x) { if (x.id !== start) x.deactivate(); });   // only the start view shows
+    activate(start);
+    document.addEventListener("keydown", onTabKey);
   }
 
   /* ---------- shared services for connectors ---------- */
@@ -303,5 +364,6 @@
   Pixels.init = init;
   Pixels.activate = activate;
   Pixels.setRefresh = setRefresh;
+  Pixels.setBadge = setBadge;
   Pixels.host = host;
 })();

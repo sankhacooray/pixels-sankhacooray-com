@@ -52,6 +52,7 @@ Two clean halves, with a connector platform on the client.
 
 ### Client file map (`pixels-sankhacooray-com`)
 - `index.html` — shell: sign-in gate, app bar + tab strip, built-in **Pixels Library** (search) view, all CSS, the photo viewer/save/block overlays live here as styles.
+- `landing.css` / `landing.js` — the signed-out landing page (the `#gate` overlay in index.html): hero, how it works, smart-crop demo, viewer keys; sign-in happens in its centred panel (`PixelsLanding.openSignin`). A pre-paint script in `<head>` adds `html.authed` when a live token exists, so signed-in users never see it.
 - `config.js` — public endpoint URLs + client id.
 - `engine.js` — `window.PixelsEngine`: `search()`, `sheet()`, `sets()`, `set(id)`, `post(payload)`. Normalizes items to `{id,type,query,width,height,preview,full,downloadUrl,alt,credit}`. `post()` retries the Apps-Script redirect bounce.
 - `host.js` — `window.Pixels`: `register`, `init`, `activate`, `setRefresh`, `host` (shared services). Owns tab strip + per-tab refresh (active only on selected view).
@@ -83,7 +84,7 @@ Two clean halves, with a connector platform on the client.
 - **Drive save/retrieve**
   - **My Library** tab lists saved sets (count + first 4 thumbnails, skeleton loading).
   - Open a set → **drive mode**: build UI hidden, source shows "My Drive · <set>", a Drive-folder link icon, per-photo **red delete-flag**, global **Update (delete flagged)** with confirm → deletes only flagged, reloads.
-- **UI**: Font Awesome icons throughout; tabs = **Pixels Library / Puzzle Builder / My Library** each (search & saved) with an attached **refresh** button active only when selected; **db + theme** icons pinned far right; fixed **footer bar** ("Media from Pexels"); **light/day theme default** (respects saved preference).
+- **UI** (Oct 2026 refresh, follows the `ui-ux-style` principles): signed-out **landing page** (`landing.*`); app CSS in `app.css`; floating frosted app bar (brand · tabs · sheet + theme icons); search panel inside the Library view; tab badges via `Pixels.setBadge`; last tab remembered, ←/→ switch tabs; skeleton/empty/error states; in-app name/confirm dialogs (no `prompt`/`confirm`); one-line footer in flow; light theme default.
 
 ---
 

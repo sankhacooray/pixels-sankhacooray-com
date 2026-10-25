@@ -2,63 +2,54 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<!-- Source for og-image.png. Render: headless Chrome --window-size=1200,630 --screenshot -->
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 1200px; height: 630px; }
   body {
-    font-family: 'DM Sans', sans-serif;
-    background: #0e1116;
-    color: #e7edf3;
+    font-family: 'DM Sans', sans-serif; background: #0e1116; color: #e7edf3;
     background-image:
-      radial-gradient(900px 460px at 16% -8%, rgba(5,160,129,0.14), transparent 60%),
+      radial-gradient(900px 460px at 16% -8%, rgba(5,160,129,0.16), transparent 60%),
       radial-gradient(820px 560px at 104% 18%, rgba(56,189,248,0.10), transparent 60%);
-    padding: 72px 80px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    position: relative;
-    overflow: hidden;
+    padding: 64px 72px; display: grid; grid-template-columns: 1fr 430px; gap: 56px; overflow: hidden;
   }
-  .eyebrow {
-    font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 500;
-    color: #05a081; text-transform: uppercase; letter-spacing: 4px;
-  }
-  h1 {
-    font-family: 'Instrument Serif', serif; font-weight: 400;
-    font-size: 96px; line-height: 1.02; letter-spacing: -2px; margin-top: 28px;
-  }
-  h1 em { color: #05a081; font-style: italic; }
-  .lede {
-    font-size: 25px; color: #93a1b0; max-width: 720px; margin-top: 30px; line-height: 1.45;
-  }
-  .foot { display: flex; align-items: baseline; gap: 18px; }
-  .mark { font-family: 'Instrument Serif', serif; font-size: 40px; color: #05a081; letter-spacing: -0.5px; }
-  .by { font-family: 'JetBrains Mono', monospace; font-size: 17px; color: #93a1b0; letter-spacing: 1px; }
-  .url { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 17px; color: #93a1b0; letter-spacing: 1px; }
-  .frame { position: absolute; right: 70px; top: 78px; opacity: 0.9; }
+  .left { display: flex; flex-direction: column; justify-content: space-between; }
+  .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 17px; color: #05a081; text-transform: uppercase; letter-spacing: 4px; }
+  h1 { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 76px; line-height: 1.02; letter-spacing: -1.6px; margin-top: 24px; }
+  h1 em { color: #12c39d; font-style: italic; }
+  .lede { font-size: 22px; color: #93a1b0; margin-top: 24px; line-height: 1.45; }
+  .foot { display: flex; align-items: center; gap: 14px; }
+  .foot img { width: 44px; height: 44px; border-radius: 11px; }
+  .mark { font-family: 'Instrument Serif', serif; font-size: 40px; letter-spacing: -0.5px; }
+  .url { font-family: 'JetBrains Mono', monospace; font-size: 16px; color: #93a1b0; letter-spacing: 1px; margin-left: 8px; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; align-content: center; }
+  .t { position: relative; aspect-ratio: 1; border-radius: 14px; overflow: hidden; background: #1f2630; }
+  .t img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .t.on { box-shadow: 0 0 0 3px #05a081; }
+  .t.on::after { content: "✓"; position: absolute; left: 8px; top: 8px; width: 22px; height: 22px; border-radius: 50%;
+    background: #05a081; color: #fff; font: 700 13px/22px 'DM Sans'; text-align: center; }
 </style>
 </head>
 <body>
-  <svg class="frame" width="300" height="200" viewBox="0 0 300 200">
-    <g fill="none" stroke="#38bdf8" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.85">
-      <rect x="34" y="18" width="196" height="150" rx="18"/>
-      <rect x="70" y="42" width="196" height="150" rx="18" stroke="#05a081"/>
-      <circle cx="116" cy="86" r="14" fill="#05a081" stroke="none"/>
-      <path d="M96 168 L152 116 L188 148 L214 126 L242 148" stroke="#05a081"/>
-    </g>
-  </svg>
-
-  <div>
-    <div class="eyebrow">images · search · preview</div>
-    <h1>A clean lens on<br><em>stock imagery</em>.</h1>
-    <div class="lede">Search and preview high-quality free photos, fast — a tidy front end over a curated image feed.</div>
+  <div class="left">
+    <div>
+      <div class="eyebrow">Pexels · smart crop · Drive</div>
+      <h1>A list of ideas in, <em>a finished image set</em> out.</h1>
+      <div class="lede">Batch-search Pexels, crop every photo to its subject, save your picks.</div>
+    </div>
+    <div class="foot"><img src="icon.svg" alt=""><span class="mark">pixels</span><span class="url">pixels.sankhacooray.com</span></div>
   </div>
-
-  <div class="foot">
-    <span class="mark">pixels</span>
-    <span class="by">Sankha Cooray</span>
-    <span class="url">pixels.sankhacooray.com</span>
+  <div class="tiles">
+    <div class="t on"><img src="https://images.pexels.com/photos/1366630/pexels-photo-1366630.jpeg?auto=compress&cs=tinysrgb&w=400" style="object-position:30% 50%"></div>
+    <div class="t on"><img src="https://images.pexels.com/photos/145939/pexels-photo-145939.jpeg?auto=compress&cs=tinysrgb&w=400" style="object-position:20% 50%"></div>
+    <div class="t"><img src="https://images.pexels.com/photos/2253275/pexels-photo-2253275.jpeg?auto=compress&cs=tinysrgb&w=400"></div>
+    <div class="t on"><img src="https://images.pexels.com/photos/417074/pexels-photo-417074.jpeg?auto=compress&cs=tinysrgb&w=400"></div>
+    <div class="t"><img src="https://images.pexels.com/photos/1591373/pexels-photo-1591373.jpeg?auto=compress&cs=tinysrgb&w=400" style="object-position:70% 50%"></div>
+    <div class="t on"><img src="https://images.pexels.com/photos/3408744/pexels-photo-3408744.jpeg?auto=compress&cs=tinysrgb&w=400" style="object-position:40% 50%"></div>
+    <div class="t on"><img src="https://images.pexels.com/photos/247431/pexels-photo-247431.jpeg?auto=compress&cs=tinysrgb&w=400"></div>
+    <div class="t"><img src="https://images.pexels.com/photos/1619507/pexels-photo-1619507.jpeg?auto=compress&cs=tinysrgb&w=400" style="object-position:50% 0%"></div>
+    <div class="t on"><img src="https://images.pexels.com/photos/1108099/pexels-photo-1108099.jpeg?auto=compress&cs=tinysrgb&w=400"></div>
   </div>
 </body>
 </html>

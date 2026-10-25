@@ -4,25 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pixels · sankhacooray</title>
-<meta name="description" content="A clean, fast lens on free stock imagery. Search high-quality photos, preview them large and pick the one you need, all from one tidy page.">
+<meta name="description" content="Turn a list of ideas into a finished image set. Pixels batch-searches Pexels, smart-crops every photo to a square and saves your picks to Google Drive.">
 <link rel="canonical" href="https://pixels.sankhacooray.com/">
 
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Pixels · sankhacooray">
 <meta property="og:title" content="Pixels · sankhacooray">
-<meta property="og:description" content="A clean, fast lens on free stock imagery. Search high-quality photos, preview them large and pick the one you need, all from one tidy page.">
+<meta property="og:description" content="Turn a list of ideas into a finished image set. Pixels batch-searches Pexels, smart-crops every photo to a square and saves your picks to Google Drive.">
 <meta property="og:url" content="https://pixels.sankhacooray.com/">
-<meta property="og:image" content="https://pixels.sankhacooray.com/assets/og-image.png">
+<meta property="og:image" content="https://pixels.sankhacooray.com/assets/og-image.png?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Pixels — a clean, fast image search and preview tool">
+<meta property="og:image:alt" content="Pixels: a list of queries becomes a grid of square photos picked from Pexels">
 <meta property="og:locale" content="en_US">
 
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Pixels · sankhacooray">
-<meta name="twitter:description" content="A clean, fast lens on free stock imagery. Search high-quality photos, preview them large and pick the one you need, all from one tidy page.">
-<meta name="twitter:image" content="https://pixels.sankhacooray.com/assets/og-image.png">
-<meta name="twitter:image:alt" content="Pixels — a clean, fast image search and preview tool">
+<meta name="twitter:description" content="Turn a list of ideas into a finished image set. Pixels batch-searches Pexels, smart-crops every photo to a square and saves your picks to Google Drive.">
+<meta name="twitter:image" content="https://pixels.sankhacooray.com/assets/og-image.png?v=2">
+<meta name="twitter:image:alt" content="Pixels: a list of queries becomes a grid of square photos picked from Pexels">
 
 <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
@@ -33,343 +33,253 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="pixels">
 
+<script>
+  /* Before first paint: saved theme, and skip the landing page when a session is live. */
+  (function () {
+    var d = document.documentElement, t = null, tok = null;
+    try { t = localStorage.getItem("pixels-theme"); tok = sessionStorage.getItem("pixels-token"); } catch (e) {}
+    d.setAttribute("data-theme", t || "light");
+    try {
+      var p = JSON.parse(atob(tok.split(".")[0].replace(/-/g, "+").replace(/_/g, "/")));
+      if (p.exp * 1000 > Date.now()) d.classList.add("authed");
+    } catch (e) {}
+    if (!d.classList.contains("authed")) d.classList.add("landing");
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="landing.css">
 <script src="https://accounts.google.com/gsi/client" async></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 <style>
-  :root {
-    --radius: 12px;
-    --shadow: 0 8px 30px rgba(0,0,0,.25);
-  }
-  html[data-theme="dark"] {
-    --bg: #0e1116; --panel: #171c24; --panel-2: #1f2630; --line: #2a323d;
-    --text: #e7edf3; --muted: #93a1b0; --accent: #05a081; --accent-2: #38bdf8;
-    --chip-bg: rgba(8,12,18,.72); --chip-text: #eaf2f8;
-  }
-  html[data-theme="light"] {
-    --bg: #f4f6f9; --panel: #ffffff; --panel-2: #ffffff; --line: #e2e7ee;
-    --text: #1a2330; --muted: #5d6b7a; --accent: #05a081; --accent-2: #0ea5e9;
-    --chip-bg: rgba(255,255,255,.82); --chip-text: #1a2330;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--bg); color: var(--text);
-    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  }
+  /* App styles (tokens, app bar, tabs, views) live in app.css. */
 
-  /* ---- Sign-in gate overlay ---- */
-  .gate {
-    position: fixed; inset: 0; z-index: 100; background: var(--bg);
-    display: grid; place-items: center; text-align: center; padding: 24px;
-  }
-  .gate-card { max-width: 360px; }
-  .gate-card h2 { margin: 6px 0 2px; }
-  .gate-msg { color: var(--muted); font-size: 14px; margin: 0 0 20px; }
-  .gate-msg b { color: var(--text); }
-  #gbtn { display: inline-block; min-height: 44px; }
-  .gate-switch {
-    display: block; margin: 16px auto 0; background: transparent; border: 0;
-    color: var(--accent-2); cursor: pointer; font-size: 13px; text-decoration: underline;
-  }
 
-  /* ---- App bar ---- */
-  .appbar {
-    position: sticky; top: 0; z-index: 50;
-    display: flex; align-items: center; gap: 12px;
-    padding: 12px 18px; background: var(--panel); border-bottom: 1px solid var(--line);
-  }
-  .seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; flex: none; }
-  .seg button {
-    appearance: none; border: 0; background: transparent; color: var(--muted);
-    padding: 9px 14px; cursor: pointer; font-size: 14px; font-weight: 600;
-  }
-  .seg button.active { background: var(--accent); color: #04231d; }
-  .search { flex: 1; display: flex; gap: 8px; min-width: 0; }
-  .search input {
-    flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--line); color: var(--text);
-    border-radius: 10px; padding: 10px 14px; font-size: 15px;
-  }
-  .search input:focus { outline: 2px solid var(--accent-2); border-color: transparent; }
-  .btn {
-    border: 0; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 700;
-    padding: 10px 18px; background: var(--accent); color: #04231d;
-  }
-  .btn:disabled { opacity: .55; cursor: progress; }
-  .icon-btn {
-    flex: none; width: 40px; height: 40px; border-radius: 10px; cursor: pointer;
-    border: 1px solid var(--line); background: var(--bg); color: var(--text);
-    font-size: 18px; line-height: 1; display: grid; place-items: center;
-  }
-
-  /* ---- Floating filters card ---- */
-  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 18px 60px; }
-  .filters {
-    position: relative; margin: 14px 0 0;
-    background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius);
-    box-shadow: var(--shadow); padding: 14px 16px;
-    display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    align-items: end;
-  }
-  .field { display: flex; flex-direction: column; gap: 5px; }
-  label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-  select, .filters input {
-    background: var(--bg); border: 1px solid var(--line); color: var(--text);
-    border-radius: 8px; padding: 8px 10px; font-size: 14px; width: 100%;
-  }
-  .field.photos-only { display: none; }
-  html[data-media="photos"] .field.photos-only { display: flex; }
-
-  .status { margin: 16px 2px 4px; color: var(--muted); font-size: 13px; min-height: 18px; }
-  .status.error { color: #ff8f8f; }
-
-  /* ---- Results ---- */
-  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
-  .card {
-    position: relative; background: var(--panel); border: 1px solid var(--line);
-    border-radius: var(--radius); overflow: hidden;
-  }
-  .card img, .card video { width: 100%; display: block; background: #000; aspect-ratio: 3/2; object-fit: cover; }
-  .chip {
-    position: absolute; top: 8px; right: 8px; z-index: 2;
-    background: var(--chip-bg); color: var(--chip-text); backdrop-filter: blur(6px);
-    font-size: 11px; font-weight: 700; letter-spacing: .03em;
-    padding: 4px 8px; border-radius: 999px; border: 1px solid rgba(255,255,255,.14);
-  }
-  .footer { margin-top: 28px; color: var(--muted); font-size: 12px; }
-  .footer a { color: var(--accent-2); text-decoration: none; }
-
-  /* ---- Tab strip (connector switcher) ---- */
-  .search-controls { display: flex; gap: 12px; flex: 1; min-width: 0; }
-  .tabs { display: flex; gap: 6px; flex: none; }
-  .tab-wrap { display: inline-flex; }
-  .tab {
-    appearance: none; border: 1px solid var(--line); background: var(--bg);
-    color: var(--muted); padding: 9px 14px; border-radius: 10px; cursor: pointer;
-    font-size: 14px; font-weight: 600; white-space: nowrap;
-  }
-  .tab.active { background: var(--accent); color: #04231d; border-color: transparent; }
-  .tab-wrap.has-refresh .tab { border-top-right-radius: 0; border-bottom-right-radius: 0; }
-  .tab-refresh {
-    appearance: none; border: 1px solid var(--line); border-left: 0; background: var(--bg);
-    color: var(--muted); padding: 9px 11px; border-radius: 0 10px 10px 0; cursor: pointer; font-size: 13px;
-  }
-  .tab-refresh:not(:disabled) { color: var(--accent-2); }
-  .tab-refresh:disabled { opacity: .35; cursor: default; }
-  .appbar-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
-
-  /* ---- Footer bar ---- */
-  .appfooter {
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
-    background: var(--panel); border-top: 1px solid var(--line);
-    padding: 6px 18px; font-size: 12px; color: var(--muted); text-align: center;
-  }
-  .appfooter a { color: var(--accent-2); text-decoration: none; }
-
-  /* ---- Puzzle Builder connector ---- */
-  .pb-card-panel {
-    margin: 14px 0 0; background: var(--panel-2); border: 1px solid var(--line);
-    border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 16px;
-    display: grid; gap: 12px;
-  }
-  .pb-presets { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-  .pb-presets-label { font-size: 12px; color: var(--muted); }
-  .pb-chips { display: contents; }
-  .pb-chip-refresh { color: var(--accent-2); }
-  .pb-chip {
-    border: 1px solid var(--line); background: var(--bg); color: var(--text);
-    border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 13px; font-weight: 600;
-  }
-  .pb-chip:hover { border-color: var(--accent-2); }
-  .pb-chip-clear { color: var(--muted); }
-  .pb-textarea {
-    width: 100%; background: var(--bg); border: 1px solid var(--line); color: var(--text);
-    border-radius: 8px; padding: 10px 12px; font: inherit; resize: vertical; min-height: 110px;
-  }
-  .pb-textarea:focus { outline: 2px solid var(--accent-2); border-color: transparent; }
-  .pb-controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
-  .pb-field { display: flex; flex-direction: column; gap: 5px; font-size: 11px; color: var(--muted);
-    text-transform: uppercase; letter-spacing: .04em; }
-  .pb-field input, .pb-field select {
-    background: var(--bg); border: 1px solid var(--line); color: var(--text);
-    border-radius: 8px; padding: 8px 10px; font-size: 14px; text-transform: none; letter-spacing: 0;
-  }
-  .pb-field input { width: 90px; }
-  .pb-hint { margin: 0; color: var(--muted); font-size: 12px; }
-  .pb-progress { margin: 14px 2px 0; color: var(--muted); font-size: 13px; min-height: 18px; }
-  .pb-progress.error { color: #ff8f8f; }
-
-  .pb-toolbar {
-    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-    margin: 14px 0 10px; padding: 10px 12px;
-    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-  }
-  .pb-selcount { font-size: 13px; color: var(--muted); margin-right: auto; }
-  .pb-tbtn {
-    border: 1px solid var(--line); background: var(--bg); color: var(--text);
-    border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 13px; font-weight: 600;
-  }
-  .pb-tbtn-primary { padding: 8px 14px; }
-  .btn:disabled, .pb-tbtn:disabled { opacity: .55; cursor: progress; }
-
-  .pb-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
-  .pb-result {
-    position: relative; background: var(--panel); border: 2px solid var(--line);
-    border-radius: var(--radius); overflow: hidden;
-  }
-  .pb-result.sel { border-color: var(--accent); }
-  .pb-imgwrap { position: relative; cursor: pointer; }
-  .pb-imgwrap img { width: 100%; display: block; background: #000; aspect-ratio: 1/1; object-fit: cover; }
-  .pb-check {
-    position: absolute; top: 8px; left: 8px; z-index: 3; width: 20px; height: 20px; cursor: pointer;
-  }
-  .pb-result .chip { top: 8px; right: 8px; }
-  .pb-qchip {
-    position: absolute; bottom: 8px; left: 8px; right: 8px; z-index: 2;
-    background: var(--chip-bg); color: var(--chip-text); backdrop-filter: blur(6px);
-    font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 8px;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  .pb-cropbtn {
-    position: absolute; bottom: 8px; right: 8px; z-index: 3;
-    background: var(--chip-bg); color: var(--chip-text); border: 1px solid rgba(255,255,255,.14);
-    border-radius: 8px; padding: 4px 8px; font-size: 11px; font-weight: 700; cursor: pointer;
-  }
-  .pb-imgwrap img { cursor: zoom-in; }
-  .pb-source { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
-  .pb-drivelink { display: none; align-items: center; justify-content: center; width: 30px; height: 30px;
-    border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--accent-2);
-    text-decoration: none; font-size: 14px; }
-  .pb-drivelink:hover { border-color: var(--accent-2); }
-  .pb-selbtn {
-    position: absolute; top: 8px; left: 8px; z-index: 3;
-    background: var(--chip-bg); color: var(--chip-text); border: 1px solid rgba(255,255,255,.14);
-    border-radius: 8px; padding: 4px 8px; font-size: 11px; font-weight: 700; cursor: pointer;
-  }
-  .pb-selbtn.on { background: var(--accent); color: #04231d; border-color: transparent; }
-
-  /* ---- Photo viewer (lightbox) ---- */
-  .pb-viewer { position: fixed; inset: 0; z-index: 200; background: rgba(6,9,13,.93);
-    display: none; flex-direction: column; }
-  .pb-viewer-bar { display: flex; align-items: center; gap: 14px; padding: 12px 16px;
-    color: var(--text); border-bottom: 1px solid rgba(255,255,255,.08); }
-  .pb-viewer-pos { font-weight: 700; }
-  .pb-viewer-count { color: var(--accent); font-weight: 700; }
-  .pb-viewer-hint { color: var(--muted); font-size: 12px; }
-  .pb-viewer-exit { border: 1px solid var(--line); background: var(--panel); color: var(--text);
-    border-radius: 8px; padding: 8px 14px; cursor: pointer; font-weight: 700; }
-  .pb-viewer-stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center;
-    padding: 16px; min-height: 0; }
-  .pb-viewer-nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
-    width: 52px; height: 52px; border-radius: 50%; cursor: pointer;
-    border: 1px solid var(--line); background: var(--panel); color: var(--text); font-size: 18px; }
-  .pb-viewer-prev { left: 16px; }
-  .pb-viewer-next { right: 16px; }
-  .pb-viewer-fig { position: relative; display: inline-flex; max-width: 100%; min-width: 0; }
-  .pb-viewer-img { display: block; max-width: 100%; max-height: calc(100vh - 110px); object-fit: contain; border-radius: 8px; }
-  .pb-viewer-sel { position: absolute; top: 12px; right: 12px; z-index: 3; cursor: pointer; font-weight: 700;
-    background: var(--chip-bg); color: var(--chip-text); border: 1px solid rgba(255,255,255,.14);
-    border-radius: 999px; padding: 8px 16px; }
-  .pb-viewer-sel.on { background: var(--accent); color: #04231d; border-color: transparent; }
-
-  /* ---- Drive mode (flag-for-deletion = red) ---- */
-  .pb-grid.drive .pb-result.sel { border-color: #e5484d; }
-  .pb-grid.drive .pb-selbtn.on { background: #e5484d; color: #fff; border-color: transparent; }
-  .pb-viewer.drive .pb-viewer-sel.on { background: #e5484d; color: #fff; border-color: transparent; }
-  .pb-update { background: #e5484d; color: #fff; }
-
-  /* ---- Saved sets list ---- */
-  .saved-list { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); margin-top: 16px; }
-  .saved-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-    padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
-  .saved-thumbs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px;
-    border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
-  .saved-thumbs img { width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block; background: #000; }
-  .saved-card { cursor: pointer; }
-  .saved-card:hover { border-color: var(--accent-2); }
-  .saved-name { font-weight: 700; word-break: break-word; }
-  .saved-meta { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
-  .saved-card .btn { align-self: flex-start; }
-  .saved-empty { grid-column: 1 / -1; color: var(--muted); font-size: 13px; margin: 4px 2px; }
-  /* skeleton loading (wave shimmer) */
-  .saved-card.skeleton { cursor: default; }
-  .saved-card.skeleton:hover { border-color: var(--line); }
-  .sk { border-radius: 6px;
-    background: linear-gradient(90deg, var(--panel-2) 25%, var(--line) 37%, var(--panel-2) 63%);
-    background-size: 400% 100%; animation: sk-wave 1.4s ease infinite; }
-  .sk-thumb { width: 100%; aspect-ratio: 1/1; }
-  .sk-line { height: 14px; margin-top: 8px; }
-  .sk-line.short { width: 55%; }
-  @keyframes sk-wave { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
-
-  /* ---- Save button + blocking overlay ---- */
-  .pb-save { background: var(--accent-2); color: #04231d; }
-  .pb-block { position: fixed; inset: 0; z-index: 210; background: rgba(6,9,13,.78);
-    display: none; align-items: center; justify-content: center; }
-  .pb-block-box { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-    padding: 28px 36px; min-width: 260px; text-align: center; color: var(--text);
-    display: flex; flex-direction: column; align-items: center; gap: 14px; }
-  .pb-block-text { font-size: 14px; color: var(--muted); }
 </style>
+<link rel="stylesheet" href="app.css">
 </head>
 <body>
 
 <div class="gate" id="gate">
-  <div class="gate-card">
-    <i class="fa-solid fa-images" style="font-size:42px"></i>
-    <h2>Pixels</h2>
-    <p class="gate-msg" id="gate-msg">Sign in to continue.</p>
-    <div id="gbtn"></div>
-    <button class="gate-switch" id="gate-switch" style="display:none">Use a different account</button>
+  <canvas class="lp-particles" aria-hidden="true"></canvas>
+
+  <header class="lp-bar">
+    <a class="lp-brand" href="#top"><img src="assets/icon.svg" alt=""><span>pixels</span></a>
+    <nav class="lp-nav" aria-label="Sections">
+      <a href="#how">How it works</a>
+      <a href="#crop">Smart crop</a>
+      <a href="#viewer">Viewer</a>
+    </nav>
+    <div class="lp-bar-right">
+      <button class="lp-icon lp-theme" type="button" aria-label="Switch theme"><i class="fa-solid fa-moon"></i><i class="fa-solid fa-sun"></i></button>
+      <button class="lp-cta" type="button" data-signin><span class="long">Build an image set</span><span class="short">Build a set</span></button>
+    </div>
+  </header>
+
+  <main class="lp-main">
+    <section class="lp-group lp-hero" id="top" data-solo>
+      <div class="lp-inner">
+        <div>
+          <p class="lp-eyebrow">Pexels · smart crop · Google Drive</p>
+          <h1>A list of ideas in, <em>a finished image set</em> out.</h1>
+          <p class="lp-lede">Write your queries one per line. Pixels searches Pexels for each, crops every photo to a square around its subject, and saves the ones you pick to Google Drive.</p>
+          <div class="lp-credit">
+            <span class="lp-pill"><i class="fa-solid fa-camera"></i>Free photos and videos from Pexels</span>
+            <span class="lp-pill"><i class="fa-solid fa-crop-simple"></i>2048 × 2048 squares</span>
+          </div>
+        </div>
+        <div class="lp-flow" aria-label="Queries become a grid of square photos">
+          <div class="lp-queries">
+            <div class="lp-queries-head"><i class="fa-solid fa-list-ul"></i>Queries</div>
+            <ol>
+              <li>sunflower field</li>
+              <li>bengal tiger</li>
+              <li>golden retriever</li>
+              <li>turquoise lake</li>
+              <li>palm beach</li>
+              <li>northern lights</li>
+              <li>forest elephant</li>
+              <li>mountain sunrise</li>
+              <li>puppies in flowers<span class="lp-caret"></span></li>
+            </ol>
+          </div>
+          <div class="lp-arrow" aria-hidden="true"><svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18h22M20 10l8 8-8 8"/></svg></div>
+          <div class="lp-tiles">
+            <div class="lp-tile on"><img src="https://images.pexels.com/photos/1366630/pexels-photo-1366630.jpeg?auto=compress&cs=tinysrgb&w=400" alt="Sunflower" style="object-position:30% 50%"><span class="lp-check"><i class="fa-solid fa-check"></i></span><span class="lp-q">4K</span></div>
+            <div class="lp-tile on"><img src="https://images.pexels.com/photos/145939/pexels-photo-145939.jpeg?auto=compress&cs=tinysrgb&w=400" alt="Bengal tiger" style="object-position:20% 50%"><span class="lp-check"><i class="fa-solid fa-check"></i></span><span class="lp-q">4K</span></div>
+            <div class="lp-tile"><img src="https://images.pexels.com/photos/2253275/pexels-photo-2253275.jpeg?auto=compress&cs=tinysrgb&w=400" alt="Golden retriever" style="object-position:48% 50%"><span class="lp-check"><i class="fa-solid fa-check"></i></span><span class="lp-q">2K</span></div>
+            <div class="lp-tile on"><img src="https://images.pexels.com/photos/417074/pexels-photo-417074.jpeg?auto=compress&cs=tinysrgb&w=400" alt="Turquoise lake below mountains" style="object-position:50% 50%"><span class="lp-check"><i class="fa-solid fa-check"></i></span><span class="lp-q">4K</span></div>
+            <div class="lp-tile"><img src="https://images.pexels.com/photos/1591373/pexels-photo-1591373.jpeg?auto=compress&cs=tinysrgb&w=400" alt="Palm tree on a beach" style="object-position:70% 50%"><span class="lp-check"><i class="fa-solid fa-check"></i></span><span class="lp-q">FHD</span></div>
+            <div class="lp-tile on"><img src="https://images.pexels.com/photos/3408744/pexels-photo-3408744.jpeg?auto=compress&cs=tinysrgb&w=400" alt="Northern lights over snow" style="object-position:40% 50%"><span class="lp-check"><i class="fa-solid fa-check"></i></span><span class="lp-q">4K</span></div>
+            <div class="lp-tile on"><img src="https://images.pexels.com/photos/247431/pexels-photo-247431.jpeg?auto=compress&cs=tinysrgb&w=400" alt="Elephant in a forest" style="object-position:48% 50%"><span class="lp-check"><i class="fa-solid fa-check"></i></span><span class="lp-q">4K</span></div>
+            <div class="lp-tile"><img src="https://images.pexels.com/photos/1323550/pexels-photo-1323550.jpeg?auto=compress&cs=tinysrgb&w=400" alt="Mountains at sunrise" style="object-position:50% 50%"><span class="lp-check"><i class="fa-solid fa-check"></i></span><span class="lp-q">2K</span></div>
+            <div class="lp-tile on"><img src="https://images.pexels.com/photos/1108099/pexels-photo-1108099.jpeg?auto=compress&cs=tinysrgb&w=400" alt="Two puppies in flowers" style="object-position:50% 50%"><span class="lp-check"><i class="fa-solid fa-check"></i></span><span class="lp-q">4K</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="lp-group" id="how">
+      <div class="lp-inner">
+        <div class="lp-head">
+          <div><p class="lp-eyebrow">How it works</p><h2>Three tabs, <em>one workflow</em>.</h2></div>
+          <p>Search one thing at a time, or hand Pixels a whole list. Either way the photos land in a grid you can review, crop and keep.</p>
+        </div>
+        <div class="lp-strip" role="list">
+          <div class="lp-step" role="listitem"><b>01</b>Write queries</div><span class="lp-to" aria-hidden="true">→</span>
+          <div class="lp-step" role="listitem"><b>02</b>Batch search</div><span class="lp-to" aria-hidden="true">→</span>
+          <div class="lp-step" role="listitem"><b>03</b>Smart crop</div><span class="lp-to" aria-hidden="true">→</span>
+          <div class="lp-step" role="listitem"><b>04</b>Pick in the viewer</div><span class="lp-to" aria-hidden="true">→</span>
+          <div class="lp-step" role="listitem"><b>05</b>Save to Drive</div>
+        </div>
+        <div class="lp-cards">
+          <article class="lp-card">
+            <div class="lp-card-head"><span class="lp-ic"><i class="fa-solid fa-magnifying-glass"></i></span><h3>Pixels Library</h3></div>
+            <p>Search photos and videos with orientation, size and colour filters. Every result carries a quality chip, from SD up to 4K.</p>
+            <div class="lp-tags"><span class="lp-tag">photos</span><span class="lp-tag">videos</span><span class="lp-tag">filters</span></div>
+          </article>
+          <article class="lp-card">
+            <div class="lp-card-head"><span class="lp-ic"><i class="fa-solid fa-puzzle-piece"></i></span><h3>Puzzle Builder</h3></div>
+            <p>Paste a list or pick a preset group from your Google Sheet. Pixels searches each line, drops duplicates and shows square crops.</p>
+            <div class="lp-tags"><span class="lp-tag">batch</span><span class="lp-tag">presets</span><span class="lp-tag">zip</span></div>
+          </article>
+          <article class="lp-card">
+            <div class="lp-card-head"><span class="lp-ic"><i class="fa-solid fa-bookmark"></i></span><h3>My Library</h3></div>
+            <p>Saved sets live in a folder on your Google Drive. Open one to review it, flag the weak shots and remove them in one go.</p>
+            <div class="lp-tags"><span class="lp-tag">drive</span><span class="lp-tag">review</span><span class="lp-tag">tidy</span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="lp-group" id="crop">
+      <div class="lp-inner">
+        <div class="lp-head">
+          <div><p class="lp-eyebrow">Smart crop</p><h2>Every square <em>finds its subject</em>.</h2></div>
+          <p>smartcrop.js scores each photo for skin tones, edges and colour, then cuts the square where the subject is. A plain centre crop would cut off this giraffe's head.</p>
+        </div>
+        <div class="lp-crop">
+          <figure class="lp-fig">
+            <div class="lp-orig">
+              <img src="https://images.pexels.com/photos/1619507/pexels-photo-1619507.jpeg?auto=compress&cs=tinysrgb&w=700" alt="Giraffe standing in grass, its head near the top of a tall frame" loading="lazy">
+              <div class="lp-box smart"></div>
+              <div class="lp-box centre"></div>
+            </div>
+            <figcaption><i class="fa-solid fa-image"></i>Original</figcaption>
+          </figure>
+          <figure class="lp-fig bad">
+            <div class="sq"><img src="https://images.pexels.com/photos/1619507/pexels-photo-1619507.jpeg?auto=compress&cs=tinysrgb&w=700" alt="Centre crop: the giraffe's head is cut off" style="object-position:50% 50%" loading="lazy"></div>
+            <figcaption><i class="fa-solid fa-xmark"></i>Centre crop</figcaption>
+          </figure>
+          <figure class="lp-fig good">
+            <div class="sq"><img src="https://images.pexels.com/photos/1619507/pexels-photo-1619507.jpeg?auto=compress&cs=tinysrgb&w=700" alt="Smart crop: the giraffe's head and neck fill the square" style="object-position:50% 0%" loading="lazy"></div>
+            <figcaption><i class="fa-solid fa-check"></i>Smart crop</figcaption>
+          </figure>
+          <div class="lp-notes">
+            <div class="lp-note"><div class="lp-note-head"><span class="lp-ic"><i class="fa-solid fa-crop-simple"></i></span><strong>2048 × 2048 output</strong></div><span>Full-size squares, ready to print or zip.</span></div>
+            <div class="lp-note"><div class="lp-note-head"><span class="lp-ic"><i class="fa-solid fa-eye"></i></span><strong>Preview per photo</strong></div><span>Flip any tile to its crop before you save.</span></div>
+            <div class="lp-note"><div class="lp-note-head"><span class="lp-ic"><i class="fa-solid fa-shield-halved"></i></span><strong>Safe fallback</strong></div><span>No clear subject? It takes the centre.</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="lp-group" id="viewer">
+      <div class="lp-inner">
+        <div class="lp-head">
+          <div><p class="lp-eyebrow">Viewer</p><h2>Pick at full size, <em>from the keyboard</em>.</h2></div>
+          <p>Open any photo to see it large. Move through the set with the arrow keys and keep or drop each one without reaching for the mouse.</p>
+        </div>
+        <div class="lp-viewer">
+          <div class="lp-screen" aria-hidden="true">
+            <div class="lp-screen-bar"><b>12 / 48</b><span class="sel">9 selected</span><span class="x">Exit</span></div>
+            <div class="lp-stage">
+              <span class="lp-nav-dot l"><i class="fa-solid fa-chevron-left"></i></span>
+              <div class="lp-stage-img"><img src="https://images.pexels.com/photos/2387873/pexels-photo-2387873.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="" loading="lazy"><span class="on"><i class="fa-solid fa-check"></i>Selected</span></div>
+              <span class="lp-nav-dot r"><i class="fa-solid fa-chevron-right"></i></span>
+            </div>
+          </div>
+          <div class="lp-keys">
+            <div class="lp-key"><kbd>← →</kbd><div><strong>Browse</strong><span>Step through the whole set</span></div></div>
+            <div class="lp-key"><kbd>Space</kbd><div><strong>Select</strong><span>Keep this photo for the set</span></div></div>
+            <div class="lp-key"><kbd>Delete</kbd><div><strong>Flag</strong><span>Mark a saved photo for removal</span></div></div>
+            <div class="lp-key"><kbd>Esc</kbd><div><strong>Close</strong><span>Back to the grid</span></div></div>
+          </div>
+        </div>
+      </div>
+      <footer class="lp-foot">
+        <span>pixels</span><span class="dot">·</span>
+        <a href="https://sankhacooray.com" target="_blank" rel="noopener" class="hide-sm">Sankha Cooray</a><span class="dot hide-sm">·</span>
+        <span>Media from <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a></span>
+        <button class="lp-info" type="button" aria-label="About access and licensing"><i class="fa-solid fa-info"></i></button>
+      </footer>
+    </section>
+  </main>
+
+  <div class="lp-glass" role="note">
+    <p>Pixels is a private tool and access is by invitation. Every photo and video comes from Pexels and is used under the Pexels License; credit belongs to the photographers who share their work there.</p>
+  </div>
+
+  <div class="lp-signin" aria-hidden="true">
+    <div class="gate-card" role="dialog" aria-labelledby="gate-title">
+      <button class="lp-icon lp-close" type="button" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+      <img src="assets/icon.svg" alt="">
+      <h2 id="gate-title">Sign in to Pixels</h2>
+      <p class="gate-msg" id="gate-msg">Access is by invitation. Sign in with your Google account to continue.</p>
+      <div id="gbtn"></div>
+      <button class="gate-switch" id="gate-switch" style="display:none">Use a different account</button>
+    </div>
   </div>
 </div>
 
-<div class="appbar">
-  <div class="search-controls" id="search-controls">
-    <div class="seg" id="seg">
-      <button data-media="photos" class="active">Photos</button>
-      <button data-media="videos">Videos</button>
-    </div>
-    <form class="search" id="search">
-      <input id="query" placeholder="Search Pexels…" value="Sri Lanka landscape" autocomplete="off">
-      <button class="btn" type="submit">Search</button>
-    </form>
-  </div>
+<header class="appbar" id="appbar">
+  <div class="brand"><img class="brand-mark" src="assets/icon.svg" alt=""><span class="brand-name">pixels</span></div>
+  <!-- tab strip is inserted here by host.js -->
   <div class="appbar-right">
-    <a class="icon-btn" id="sheet-link" target="_blank" rel="noopener" title="Open query sheet" style="display:none"><i class="fa-solid fa-database"></i></a>
-    <button class="icon-btn" id="theme" title="Toggle light / dark"><i class="fa-solid fa-sun"></i></button>
+    <a class="icon-btn" id="sheet-link" target="_blank" rel="noopener" title="Open the query sheet" aria-label="Open the query sheet" style="display:none"><i class="fa-solid fa-database"></i></a>
+    <button class="icon-btn theme-btn" id="theme" type="button" title="Switch to dark theme" aria-label="Switch to dark theme"><i class="fa-solid fa-moon ico-to-dark"></i><i class="fa-solid fa-sun ico-to-light"></i></button>
   </div>
-</div>
+</header>
 
-<div class="wrap">
-  <div id="view-search">
-  <div class="filters" id="filters">
-    <div class="field">
-      <label for="orientation">Orientation</label>
-      <select id="orientation">
-        <option value="">any</option><option>landscape</option><option>portrait</option><option>square</option>
-      </select>
-    </div>
-    <div class="field">
-      <label for="size">Min size</label>
-      <select id="size">
-        <option value="">any</option><option>large</option><option>medium</option><option>small</option>
-      </select>
-    </div>
-    <div class="field photos-only">
-      <label for="color">Color</label>
-      <input id="color" placeholder="red / #1a2b3c" autocomplete="off">
-    </div>
-    <div class="field">
-      <label for="per_page">Results</label>
-      <input id="per_page" type="number" min="1" max="80" value="15">
-    </div>
-  </div>
-
-    <p class="status" id="status"></p>
+<main class="wrap">
+  <section class="view" id="view-search">
+    <form class="panel search-panel" id="search" role="search">
+      <div class="search-row" id="search-controls">
+        <label class="search-field"><i class="fa-solid fa-magnifying-glass"></i>
+          <input id="query" type="search" placeholder="Search free photos and videos" value="Sri Lanka landscape" autocomplete="off" enterkeyhint="search" aria-label="Search Pexels">
+        </label>
+        <button class="btn" id="search-btn" type="submit">Search</button>
+      </div>
+      <div class="filters" id="filters">
+        <div class="seg" id="seg" role="group" aria-label="Media type">
+          <button type="button" data-media="photos" class="active" aria-pressed="true"><i class="fa-regular fa-image"></i>Photos</button>
+          <button type="button" data-media="videos" aria-pressed="false"><i class="fa-solid fa-film"></i>Videos</button>
+        </div>
+        <label class="fpill field"><span>Orientation</span>
+          <select id="orientation">
+            <option value="">any</option><option>landscape</option><option>portrait</option><option>square</option>
+          </select>
+        </label>
+        <label class="fpill field"><span>Min size</span>
+          <select id="size">
+            <option value="">any</option><option>large</option><option>medium</option><option>small</option>
+          </select>
+        </label>
+        <label class="fpill field photos-only"><span>Colour</span>
+          <input id="color" placeholder="any" title="A colour name or hex, e.g. red or #1a2b3c" autocomplete="off">
+        </label>
+        <label class="fpill field"><span>Results</span>
+          <input id="per_page" type="number" min="1" max="80" value="15">
+        </label>
+        <p class="status" id="status" role="status" aria-live="polite"></p>
+      </div>
+    </form>
     <div class="grid" id="grid"></div>
-  </div>
-</div>
+  </section>
+</main>
 
-<div class="appfooter">Media from <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a>.</div>
+<footer class="appfooter">Pixels · Media from <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a></footer>
 
 <script src="config.js"></script>
 <!-- Data engine + connector host (the pluggable platform) -->
@@ -380,6 +290,7 @@
 <script src="processors/square-smart.js"></script>
 <script src="connectors/puzzle-builder.js"></script>
 <script src="connectors/saved.js"></script>
+<script src="landing.js"></script>
 <script>
   const $ = (s) => document.querySelector(s);
   const API_BASE = window.PIXELS_API_BASE || "";
@@ -402,12 +313,21 @@
     } catch (e) { return false; }
   }
   /* ---- Sign in with Google (GIS) ---- */
-  function showGate(msg) { $("#gate").style.display = "grid"; if (msg) $("#gate-msg").textContent = msg; }
-  function hideGate() { $("#gate").style.display = "none"; }
+  /* The gate is the landing page; sign-in itself happens in its centred panel. */
+  function showGate(msg) {
+    document.documentElement.classList.remove("authed");
+    if (window.PixelsLanding) PixelsLanding.show(); else $("#gate").style.display = "";
+    if (msg && window.PixelsLanding) PixelsLanding.openSignin(msg);
+  }
+  function hideGate() {
+    document.documentElement.classList.add("authed");
+    if (window.PixelsLanding) PixelsLanding.hide(); else $("#gate").style.display = "none";
+  }
 
   function onCredential(resp) {
     $("#gate-switch").style.display = "none";
     $("#gate-msg").textContent = "Signing in…";
+    if (window.PixelsLanding) PixelsLanding.openSignin();
     fetch(AUTH_URL + "?app=" + encodeURIComponent(APP_ID) + "&credential=" + encodeURIComponent(resp.credential))
       .then((r) => r.json())
       .then((data) => {
@@ -441,34 +361,52 @@
   }
 
   /* ---- App init (only runs once authenticated) ---- */
+  let appStarted = false;
   function initApp() {
-    /* Theme */
+    if (appStarted) return;           // re-auth calls initApp again; listeners are already wired
+    appStarted = true;
+
+    /* Theme: the button shows the theme it switches TO (icons picked in CSS). */
     const themeBtn = $("#theme");
+    const root = document.documentElement;
+    function labelTheme() {
+      const label = root.getAttribute("data-theme") === "dark" ? "Switch to light theme" : "Switch to dark theme";
+      themeBtn.setAttribute("aria-label", label); themeBtn.title = label;
+    }
     function applyTheme(t) {
-      document.documentElement.setAttribute("data-theme", t);
-      themeBtn.innerHTML = '<i class="fa-solid fa-' + (t === "dark" ? "moon" : "sun") + '"></i>';
+      root.setAttribute("data-theme", t);
       try { localStorage.setItem("pixels-theme", t); } catch (e) {}
+      labelTheme();
     }
     applyTheme((function () { try { return localStorage.getItem("pixels-theme"); } catch (e) {} })() || "light");
-    themeBtn.addEventListener("click", () =>
-      applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark"));
+    themeBtn.addEventListener("click", () => applyTheme(root.getAttribute("data-theme") === "dark" ? "light" : "dark"));
+    new MutationObserver(labelTheme).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+
+    /* Floating app bar height feeds the sticky toolbars below it. */
+    const bar = $("#appbar");
+    const setBarH = () => root.style.setProperty("--bar-h", bar.offsetHeight + "px");
+    setBarH();
+    if (window.ResizeObserver) new ResizeObserver(setBarH).observe(bar);
 
     /* Media toggle */
-    document.documentElement.setAttribute("data-media", media);
+    root.setAttribute("data-media", media);
     $("#seg").addEventListener("click", (e) => {
       const btn = e.target.closest("button"); if (!btn) return;
       media = btn.dataset.media;
-      document.documentElement.setAttribute("data-media", media);
-      $("#seg").querySelectorAll("button").forEach((b) => b.classList.toggle("active", b === btn));
+      root.setAttribute("data-media", media);
+      $("#seg").querySelectorAll("button").forEach((b) => {
+        b.classList.toggle("active", b === btn); b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+      });
     });
 
     $("#search").addEventListener("submit", (e) => { e.preventDefault(); search(); });
+    showLibraryEmpty();
 
     /* Connector host: builds the tab strip, registers the built-in Search
        view, and mounts any connectors (e.g. Puzzle Builder) as extra tabs. */
     if (window.Pixels && Pixels.init) Pixels.init();
     // Pixels Library tab gets a refresh button that re-runs the current search.
-    if (window.Pixels && Pixels.setRefresh) Pixels.setRefresh("search", function () { search(); });
+    if (window.Pixels && Pixels.setRefresh) Pixels.setRefresh("search", function () { return search(); });
 
     /* App-bar link to the query sheet (shown once we know its URL). */
     if (window.Pixels && Pixels.host && Pixels.host.loadGroups) {
@@ -497,10 +435,14 @@
   }
 
   /* ---- Search (now goes through PixelsEngine) ---- */
+  let searchSeq = 0;
   async function search() {
-    if (!$("#query").value.trim()) { setStatus("Type something to search."); return; }
-    const btn = $("#search button");
-    btn.disabled = true; setStatus("Searching " + media + "…"); grid.innerHTML = "";
+    if (!$("#query").value.trim()) { setStatus("Type something to search."); $("#query").focus(); return; }
+    const btn = $("#search-btn");
+    const seq = ++searchSeq;
+    btn.disabled = true; btn.classList.add("is-busy");
+    setStatus("Searching " + media + "…");
+    showSkeletons(Math.min(parseInt($("#per_page").value, 10) || 15, 20));
     try {
       const { items, total } = await PixelsEngine.search({
         type: media,
@@ -510,21 +452,63 @@
         perPage: $("#per_page").value,
         color: media === "photos" ? $("#color").value.trim() : ""
       });
-      if (!items.length) { setStatus("No results. Try a different query."); return; }
+      if (seq !== searchSeq) return;               // a newer search took over
+      grid.innerHTML = "";
+      if (!items.length) {
+        setStatus("");
+        grid.appendChild(emptyState("fa-solid fa-image", "No results",
+          "Nothing matched “" + $("#query").value.trim() + "”. Try a broader query or loosen the filters."));
+        return;
+      }
       setStatus(total != null
         ? (items.length + " shown · ~" + total.toLocaleString() + " total")
         : (items.length + " results"));
       items.forEach((it) => grid.appendChild(card(it)));
     } catch (err) {
+      if (seq === searchSeq) grid.innerHTML = "";
       if (err.code === "unauthorized") { window.pixelsReauth(); return; }
-      setStatus(err.message, true);
+      setStatus("");
+      grid.appendChild(emptyState("fa-solid fa-triangle-exclamation", "Search failed", err.message, true));
     } finally {
-      btn.disabled = false;
+      if (seq === searchSeq) { btn.disabled = false; btn.classList.remove("is-busy"); }
     }
   }
   function setStatus(msg, isErr) { status.textContent = msg || ""; status.classList.toggle("error", !!isErr); }
 
   function chip(text) { const c = document.createElement("span"); c.className = "chip"; c.textContent = text; return c; }
+
+  /* ---- Library empty / loading states ---- */
+  function emptyState(icon, title, text, danger) {
+    const box = document.createElement("div"); box.className = "empty";
+    const ico = document.createElement("div"); ico.className = "empty-ico" + (danger ? " danger" : "");
+    ico.innerHTML = '<i class="' + icon + '"></i>';
+    const h = document.createElement("h2"); h.textContent = title;
+    const p = document.createElement("p"); p.textContent = text;
+    box.append(ico, h, p);
+    return box;
+  }
+  const SUGGESTIONS = ["Sri Lanka landscape", "Misty mountains", "City at night", "Ocean waves", "Autumn forest", "Desert dunes"];
+  function showLibraryEmpty() {
+    grid.innerHTML = "";
+    const box = emptyState("fa-solid fa-magnifying-glass", "Search free photos and videos",
+      "Type a query above, or start from one of these. Results show their quality, from SD up to 4K.");
+    const row = document.createElement("div"); row.className = "empty-actions";
+    SUGGESTIONS.forEach((q) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "pb-chip"; b.textContent = q;
+      b.addEventListener("click", () => { $("#query").value = q; search(); });
+      row.appendChild(b);
+    });
+    box.appendChild(row);
+    grid.appendChild(box);
+  }
+  function showSkeletons(n) {
+    grid.innerHTML = "";
+    for (let i = 0; i < n; i++) {
+      const c = document.createElement("div"); c.className = "card skeleton"; c.setAttribute("aria-hidden", "true");
+      c.innerHTML = '<div class="sk sk-media"></div><div class="sk sk-line"></div>';
+      grid.appendChild(c);
+    }
+  }
 
   /* Unified card renderer for normalized engine items. */
   function card(it) {
@@ -541,7 +525,15 @@
       mediaEl.addEventListener("mouseenter", () => mediaEl.play().catch(() => {}));
       mediaEl.addEventListener("mouseleave", () => mediaEl.pause());
     }
-    c.append(chip(quality(it.width, it.height)), mediaEl);
+    const meta = document.createElement("div"); meta.className = "card-meta";
+    const who = document.createElement("span");
+    who.textContent = it.credit || (it.type === "photo" ? "Pexels photo" : "Pexels video");
+    const ico = document.createElement("i");
+    ico.className = it.type === "photo" ? "fa-solid fa-camera" : "fa-solid fa-video";
+    const dim = document.createElement("span"); dim.className = "dim";
+    if (it.width && it.height) dim.textContent = it.width + " × " + it.height;
+    meta.append(ico, who, dim);
+    c.append(chip(quality(it.width, it.height)), mediaEl, meta);
     return c;
   }
 
