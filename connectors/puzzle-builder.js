@@ -108,7 +108,6 @@
         });
         ta.value = out.join("\n");
         updateQueryCount();
-        ta.scrollTop = ta.scrollHeight;
       }
 
       // (Re)build the chip row from an array of { name, items }.
@@ -156,13 +155,65 @@
       }
       refreshBtn.addEventListener("click", function () { loadPresets(true); });
 
-      // Query textarea
-      const ta = el("textarea", "pb-textarea");
-      ta.placeholder = "One search query per line\nbali temple\nwat arun\ngreek sculpture";
-      ta.rows = 8;
-      ta.spellcheck = false;
-      ta.setAttribute("aria-label", "Search queries, one per line");
-      qCol.appendChild(ta);
+      // Query slots: MAX_QUERIES numbered inputs in two columns. `ta` mimics the
+      // old textarea (.value as newline-joined text) so the rest stays the same.
+      const MAX_QUERIES = 20;
+      const EXAMPLES = ["bali temple", "wat arun", "greek sculpture"];
+      const qGrid = el("div", "pb-qgrid");
+      qGrid.style.setProperty("--rows", String(MAX_QUERIES / 2));
+      const slots = [];
+      for (let i = 0; i < MAX_QUERIES; i++) {
+        const row = el("label", "pb-qslot");
+        const input = el("input");
+        input.type = "text"; input.spellcheck = false; input.autocomplete = "off";
+        input.placeholder = EXAMPLES[i] || "";
+        input.setAttribute("aria-label", "Query " + (i + 1));
+        row.append(el("span", "pb-qnum", String(i + 1)), input);
+        qGrid.appendChild(row);
+        slots.push(input);
+      }
+      let overflowNote = "";
+      function fillSlots(lines, from) {
+        lines = lines.map(function (s) { return String(s).trim(); }).filter(Boolean);
+        const room = MAX_QUERIES - from;
+        overflowNote = lines.length > room ? (lines.length - room) + " more didn't fit · " + MAX_QUERIES + " max" : "";
+        lines.slice(0, room).forEach(function (q, k) { slots[from + k].value = q; });
+        return Math.min(lines.length, room);
+      }
+      const ta = {
+        get value() { return slots.map(function (s) { return s.value.trim(); }).filter(Boolean).join("\n"); },
+        set value(v) {
+          slots.forEach(function (s) { s.value = ""; });
+          fillSlots(String(v || "").split("\n"), 0);
+        },
+        focus() {
+          const firstEmpty = slots.find(function (s) { return !s.value.trim(); });
+          (firstEmpty || slots[slots.length - 1]).focus();
+        },
+        addEventListener(type, fn) { qGrid.addEventListener(type, fn); },
+      };
+      slots.forEach(function (input, i) {
+        input.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || (e.key === "ArrowDown" && !e.shiftKey)) {
+            e.preventDefault(); if (slots[i + 1]) slots[i + 1].focus();
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault(); if (slots[i - 1]) slots[i - 1].focus();
+          } else if (e.key === "Backspace" && !input.value && slots[i - 1]) {
+            e.preventDefault(); slots[i - 1].focus();
+          }
+        });
+        // Pasting a list fills this slot and the ones after it.
+        input.addEventListener("paste", function (e) {
+          const text = (e.clipboardData || window.clipboardData).getData("text");
+          if (text.indexOf("\n") < 0) return;
+          e.preventDefault();
+          const n = fillSlots(text.split(/\r?\n/), i);
+          const next = slots[Math.min(i + n, MAX_QUERIES - 1)];
+          next.focus();
+          qGrid.dispatchEvent(new Event("input"));
+        });
+      });
+      qCol.appendChild(qGrid);
 
       // Options row
       const opts = el("div", "pb-controls");
@@ -201,9 +252,14 @@
 
       function updateQueryCount() {
         const n = ta.value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean).length;
-        queryCount.textContent = n ? (n + " quer" + (n === 1 ? "y" : "ies") + " · up to " + (n * (parseInt(perInput.value, 10) || 0)) + " images") : "";
+        queryCount.textContent = n
+          ? (n + " / " + MAX_QUERIES + " · up to " + (n * (parseInt(perInput.value, 10) || 0)) + " images" + (overflowNote ? " · " + overflowNote : ""))
+          : "Up to " + MAX_QUERIES + " queries";
+        queryCount.classList.toggle("warn", !!overflowNote);
         clearQ.disabled = !ta.value.trim();
       }
+      // A note about dropped lines lasts until the next edit.
+      qGrid.addEventListener("input", function (e) { if (e.isTrusted) overflowNote = ""; });
       updateQueryCount();
       ta.addEventListener("input", updateQueryCount);
       perInput.addEventListener("input", updateQueryCount);
@@ -414,7 +470,7 @@
       }
       function showIntro() {
         showEmpty("fa-solid fa-puzzle-piece", "Build an image set",
-          "Write queries one per line, or add a query group. Build searches each one, drops duplicates and shows the photos here. Pick the ones you want and save them to Drive.");
+          "Fill in up to 20 queries, or add a query group. Build searches each one, drops duplicates and shows the photos here. Pick the ones you want and save them to Drive.");
       }
       function showEmpty(icon, title, text, danger) {
         gridEl.innerHTML = "";

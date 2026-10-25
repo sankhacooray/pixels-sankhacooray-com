@@ -208,6 +208,8 @@ html[data-theme="dark"] .theme-btn .ico-to-dark { display: none; }
 .view { min-width: 0; flex: 1 0 auto; display: flex; flex-direction: column; }
 .grid:has(> .empty), .pb-grid:has(> .empty), .saved-list:has(> .empty) { flex: 1 0 auto; display: flex; }
 .grid > .empty, .pb-grid > .empty, .saved-list > .empty { flex: 1; }
+/* With the results toolbar hidden, the empty card still needs a gap under the build panel. */
+.pb-root .pb-grid:has(> .empty) { margin-top: 16px; }
 
 .panel {
   background: var(--surface); border-radius: var(--radius);
@@ -321,16 +323,19 @@ html[data-media="photos"] .field.photos-only { display: inline-flex; }
 .empty {
   grid-column: 1 / -1;
   display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
-  gap: 10px; padding: 56px 20px; min-height: 340px;
+  gap: 10px; padding: clamp(20px, 4vh, 48px) 20px; min-height: 0;
   border-radius: var(--radius); background: var(--surface); box-shadow: var(--ring), var(--shadow-sm);
 }
 .empty-ico {
-  width: 64px; height: 64px; border-radius: 20px; display: grid; place-items: center;
+  width: clamp(48px, 7vh, 64px); height: clamp(48px, 7vh, 64px); border-radius: 18px; display: grid; place-items: center;
   background: var(--accent-soft); color: var(--accent-text); font-size: 26px; margin-bottom: 6px;
 }
 .empty-ico.danger { background: var(--danger-soft); color: var(--danger-text); }
 .empty h2 { margin: 0; font-size: 19px; font-weight: 750; letter-spacing: -.01em; }
 .empty p { margin: 0; max-width: 460px; color: var(--muted); font-size: 14px; }
+/* Short laptop screens: drop the icon so the empty card fits under the panels. */
+@media (max-height: 820px) and (min-width: 721px) { .empty-ico { display: none; } .empty { gap: 8px; } }
+@media (max-height: 720px) and (min-width: 721px) { .pb-qgrid { gap: 4px 14px; grid-template-rows: repeat(var(--rows, 10), minmax(24px, 1fr)); } .empty { padding-block: 14px; } }
 .empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 10px; }
 
 /* ---------- Footer: one short line ---------- */
@@ -397,6 +402,27 @@ html[data-media="photos"] .field.photos-only { display: inline-flex; }
 .pb-progress.error { color: var(--danger-text); }
 .pb-progress a { color: var(--accent-text); font-weight: 600; text-decoration: none; margin-left: 4px; }
 .pb-progress a:hover { text-decoration: underline; }
+
+/* Query slots: two columns, filled down the first column then the second. */
+.pb-qgrid {
+  flex: 1; display: grid; grid-auto-flow: column; gap: 5px 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(var(--rows, 10), minmax(26px, 1fr));
+}
+.pb-qslot {
+  display: flex; align-items: center; gap: 8px; min-width: 0; padding: 0 4px 0 10px;
+  border-radius: 10px; background: var(--surface-2); cursor: text;
+  transition: background-color .15s ease, box-shadow .15s ease;
+}
+.pb-qslot:hover { background: var(--surface-3); }
+.pb-qslot:focus-within { background: var(--surface); box-shadow: 0 0 0 2px var(--accent); }
+.pb-qnum { flex: none; width: 18px; text-align: right; font: 500 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--faint); }
+.pb-qslot input {
+  flex: 1; min-width: 0; height: 100%; border: 0; outline: none; background: transparent; color: var(--text);
+  font: 14px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 0;
+}
+.pb-qslot input::placeholder { color: var(--faint); }
+.pb-hint.warn { color: var(--danger-text); }
 
 /* ---------- Puzzle Builder: sticky results toolbar ---------- */
 .pb-toolbar {
@@ -605,7 +631,7 @@ html[data-media="photos"] .field.photos-only { display: inline-flex; }
   .tab-wrap.active { justify-content: center; }
   .wrap { padding-top: 14px; }
   .pb-card-panel { grid-template-columns: 1fr; padding: 14px; gap: 16px; }
-  .pb-textarea { min-height: 150px; }
+  .pb-qgrid { gap: 6px 8px; grid-template-rows: repeat(var(--rows, 10), 34px); }
   .pb-toolbar { border-radius: 18px; }
   .pb-viewer-hint { display: none; }
   .pb-viewer-stage { padding: 12px; }
@@ -642,7 +668,7 @@ html[data-media="photos"] .field.photos-only { display: inline-flex; }
   .pb-viewer-q { display: none; }
   .saved-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .saved-card { padding: 8px 8px 12px; }
-  .empty { padding: 40px 18px; min-height: 300px; }
+  .empty { padding: 32px 18px; min-height: 240px; }
   .appfooter { padding-bottom: 14px; }
 }
 .empty-actions .pb-chip { padding: 0 14px; }
