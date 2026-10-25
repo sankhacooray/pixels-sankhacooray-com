@@ -261,6 +261,9 @@ html[data-theme="dark"] .lp-theme .fa-moon { display: none; }
 .gate-msg { color: var(--lp-muted); font-size: 15px; margin: 0 0 22px; }
 .gate-msg b { color: var(--lp-text); }
 #gbtn { display: flex; justify-content: center; min-height: 44px; }
+/* The Google button iframe is light-scheme; under a dark page Chrome would paint a
+   white box behind it, so keep its container on the same scheme. */
+#gbtn, #gbtn iframe { color-scheme: light; background: transparent; }
 .gate-switch {
   display: block; margin: 16px auto 0; background: transparent; border: 0;
   color: var(--lp-blue); cursor: pointer; font: 500 14px "DM Sans", sans-serif;
