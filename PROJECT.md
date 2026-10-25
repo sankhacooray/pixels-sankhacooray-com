@@ -91,6 +91,7 @@ Two clean halves, with a connector platform on the client.
 ## 4. Deploy
 
 **Frontend:**
+Pages lets browsers cache CSS/JS ~10 min, so when you change any local `.css`/`.js`, bump the shared `?v=` stamp on their tags in `index.html` (e.g. `sed -i '' "s/?v=OLD/?v=NEW/g" index.html`) or users get new HTML with stale styles.
 ```bash
 git add -A && git commit -m "…" && git push origin main   # GitHub Pages serves main root
 # verify: curl https://pixels.sankhacooray.com/<file> (CDN can lag ~30–60s per file)
