@@ -5,13 +5,13 @@
 html[data-theme="light"] {
   --lp-bg: #f4f6f9; --lp-surface: #ffffff; --lp-surface-2: #eef2f6; --lp-card-hover: #eef7f4;
   --lp-text: #16202c; --lp-muted: #5a6878; --lp-accent: #05a081; --lp-accent-hi: #08b892;
-  --lp-accent-ink: #ffffff; --lp-blue: #0e8fd0; --lp-glass: rgba(244,246,249,.72);
+  --lp-accent-ink: #ffffff; --lp-cta: #04846b; --lp-cta-hi: #037a63; --lp-blue: #0e8fd0; --lp-glass: rgba(244,246,249,.72);
   --lp-shadow: 0 18px 50px rgba(20,32,48,.10); --lp-ring: rgba(5,160,129,.35);
 }
 html[data-theme="dark"] {
   --lp-bg: #0e1116; --lp-surface: #171c24; --lp-surface-2: #1f2630; --lp-card-hover: #1b2a2a;
   --lp-text: #e7edf3; --lp-muted: #93a1b0; --lp-accent: #05a081; --lp-accent-hi: #12c39d;
-  --lp-accent-ink: #ffffff; --lp-blue: #38bdf8; --lp-glass: rgba(14,17,22,.70);
+  --lp-accent-ink: #ffffff; --lp-cta: #04846b; --lp-cta-hi: #037a63; --lp-blue: #38bdf8; --lp-glass: rgba(14,17,22,.70);
   --lp-shadow: 0 18px 50px rgba(0,0,0,.40); --lp-ring: rgba(18,195,157,.40);
 }
 
@@ -60,13 +60,13 @@ html[data-theme="dark"] .lp-theme .fa-moon { display: none; }
 
 .lp-cta {
   appearance: none; border: 0; cursor: pointer; white-space: nowrap;
-  background: var(--lp-accent); color: var(--lp-accent-ink);
+  background: var(--lp-cta); color: var(--lp-accent-ink);  /* 4.65:1 with white (accent #05a081 was 3.3:1) */
   font: 600 15px/1 "DM Sans", sans-serif; letter-spacing: .1px;
   padding: 13px 22px 12px; border-radius: 999px;
   box-shadow: 0 6px 18px rgba(5,160,129,.28);
   transition: background-color .2s, box-shadow .2s;
 }
-.lp-cta:hover { background: var(--lp-accent-hi); box-shadow: 0 8px 26px rgba(5,160,129,.45); }
+.lp-cta:hover { background: var(--lp-cta-hi); box-shadow: 0 8px 26px rgba(5,160,129,.45); }
 .lp-cta .short { display: none; }
 .gate :focus-visible { outline: 2px solid var(--lp-blue); outline-offset: 2px; }
 
@@ -78,6 +78,8 @@ html[data-theme="dark"] .lp-theme .fa-moon { display: none; }
   scroll-margin-top: var(--lp-bar-h, 64px);
 }
 .lp-inner { width: 100%; max-width: 1240px; margin: 0 auto; }
+/* Pre-size the hero to the screen-fit height landing.js gives it, so it doesn't jump when the JS runs (CLS). */
+.lp-group[data-solo] { min-height: calc(100vh - var(--lp-bar-h, 64px)); min-height: calc(100dvh - var(--lp-bar-h, 64px)); }
 @media (min-width: 1700px) { .lp-inner { max-width: 1400px; } }
 .lp-eyebrow {
   font: 500 12px/1 "JetBrains Mono", ui-monospace, monospace; letter-spacing: 3px;
